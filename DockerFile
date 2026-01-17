@@ -1,0 +1,32 @@
+# 1. Usar una versión ligera de Python
+FROM python:3.9-slim
+
+# 2. INSTALAR FFMPEG (¡CRUCIAL!)
+RUN apt-get update && \
+    apt-get install -y ffmpeg && \
+    rm -rf /var/lib/apt/lists/*
+
+# 3. Crear carpeta de trabajo
+WORKDIR /app
+
+# 4. Copiar los requerimientos e instalarlos
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 5. Copiar todo el código del backend
+COPY . .
+
+# 6. Copiar el frontend también (para servirlo todo junto)
+# Asumimos que la estructura es:
+# /proyecto
+#    /backend (donde está este Dockerfile)
+#    /frontend
+# NOTA: Ajusta esto si tu estructura es distinta.
+# Si tu Dockerfile está en /backend, para copiar /frontend necesitas subir el contexto.
+# SIMPLIFICACIÓN: Copiaremos la carpeta static y templates si las tienes dentro.
+
+# 7. Crear carpetas necesarias
+RUN mkdir -p static/assets uploads outputs
+
+# 8. Comando para iniciar
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

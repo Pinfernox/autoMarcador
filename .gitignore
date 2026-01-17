@@ -1,0 +1,21 @@
+# Archivos de sistema y Python
+__pycache__/
+*.pyc
+venv/
+.env
+.DS_Store
+
+# Archivos multimedia pesados (No subir a GitHub)
+*.mp4
+*.avi
+*.mov
+
+# Carpetas temporales del proyecto
+uploads/
+outputs/
+temp/
+
+# Binarios (No subir ffmpeg.exe, Render lo instalará solo)
+*.exe
+*.dll
+ffmpeg.exe

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoMarcador Studio</title>
+  <link rel="stylesheet" href="static/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="dashboard-container">
+  
+  <aside class="sidebar">
+      <div class="logo-area">
+        <h1>⚽ AutoMarcador</h1>
+        <span class="badge">BETA</span>
+      </div>
+
+      <div class="control-group">
+        <h3>1. Archivos</h3>
+        <label class="file-drop-zone">
+          <span id="videoStatus">📂 Video MP4</span>
+          <input type="file" id="videoInput" accept="video/*" hidden>
+        </label>
+        <label class="file-drop-zone">
+          <span id="eventStatus">📄 Datos TXT</span>
+          <input type="file" id="eventsInput" accept=".txt" hidden>
+        </label>
+      </div>
+
+      <div class="control-group">
+        <h3>2. Personalización</h3>
+        <button id="btnOpenConfig" class="btn-secondary">🖌️ Abrir Personalización</button>
+      </div>
+
+      <div class="control-group">
+        <div class="info-box">
+          <p><strong>Plan Gratuito:</strong></p>
+          <ul>
+            <li>Resolución 720p</li>
+            <li>Marca de agua activa</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="ad-placeholder">Espacio Publicitario</div>
+
+      <button id="btnRender" class="btn-primary">🚀 Renderizar Video</button>
+  </aside>
+
+  <main class="main-content">
+    <div class="video-wrapper">
+      <div class="player-container">
+        <video id="video" controls poster="assets/poster_placeholder.png"></video>
+        
+        <div class="tv-overlay">
+
+          <div class="tv-box box-white box-liga">
+            <div class="logo-placeholder">LIGA</div>
+          </div>
+
+          <div class="tv-box box-white box-time">
+            <span id="time">00:00</span>
+          </div>
+
+          <div class="tv-box box-blue box-team box-local">
+            <div class="team-colors">
+              <span class="color-strip strip-1"></span>
+              <span class="color-strip strip-2"></span>
+            </div>
+            <span class="team-name" id="local">LOCAL</span>
+          </div>
+
+          <div class="tv-box box-white box-score">
+            <span id="score">0 - 0</span>
+          </div>
+
+          <div class="tv-box box-blue box-team box-visit">
+            <span class="team-name" id="visitor">VISIT.</span>
+            <div class="team-colors">
+              <span class="color-strip strip-1"></span>
+              <span class="color-strip strip-2"></span>
+            </div>
+          </div>
+
+        </div>
+
+        </div>
+    </div>
+  </main>
+
+</div>
+
+<div id="configModal" class="modal-overlay hidden">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>🛠️ Configuración del Marcador</h2>
+      <button id="btnCloseConfig" class="close-btn">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      
+      <fieldset>
+        <legend>Estilo General</legend>
+        <div class="config-grid">
+          <div class="input-group">
+            <label>Fondo Principal (Equipos)</label>
+            <input type="color" id="cfgMainBg" value="#1E90FF">
+          </div>
+          <div class="input-group">
+            <label>Fondo Datos (Goles/Tiempo)</label>
+            <input type="color" id="cfgInfoBg" value="#ffffff">
+          </div>
+          <div class="input-group">
+            <label>Color Texto</label>
+            <input type="color" id="cfgTextColor" value="#000000">
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Equipo Local</legend>
+        <div class="config-grid">
+          <div class="input-group full-width">
+            <label>Nombre (Máx 6 letras)</label>
+            <input type="text" id="inputLocalName" placeholder="LOCAL" maxlength="6">
+          </div>
+          <div class="input-group">
+            <label>Franja 1</label>
+            <input type="color" id="cfgLocStrip1" value="#ffffff">
+          </div>
+          <div class="input-group">
+            <label>Franja 2</label>
+            <input type="color" id="cfgLocStrip2" value="#000000">
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Equipo Visitante</legend>
+        <div class="config-grid">
+          <div class="input-group full-width">
+            <label>Nombre (Máx 6 letras)</label>
+            <input type="text" id="inputVisitName" placeholder="VISIT" maxlength="6">
+          </div>
+          <div class="input-group">
+            <label>Franja 1</label>
+            <input type="color" id="cfgVisStrip1" value="#ffffff">
+          </div>
+          <div class="input-group">
+            <label>Franja 2</label>
+            <input type="color" id="cfgVisStrip2" value="#000000">
+          </div>
+        </div>
+      </fieldset>
+
+    </div>
+
+    <div class="modal-footer">
+      <button id="btnApplyConfig" class="btn-primary">Guardar y Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script src="static/preview.js"></script>
+<script>
+  // Script rápido para cambiar el texto de los botones al subir archivo
+  document.getElementById('videoInput').addEventListener('change', function(){
+      if(this.files[0]) document.getElementById('videoStatus').innerText = "✅ " + this.files[0].name;
+  });
+  document.getElementById('eventsInput').addEventListener('change', function(){
+      if(this.files[0]) document.getElementById('eventStatus').innerText = "✅ " + this.files[0].name;
+  });
+</script>
+</body>
+</html>
