@@ -1,5 +1,5 @@
-from fastapi import FastAPI, UploadFile, File, BackgroundTasks, Form
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, UploadFile, File, BackgroundTasks, Form, Response
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import os
 import shutil
@@ -68,12 +68,16 @@ async def render_video(
         # Devolvemos un error 500 para que el JS sepa que falló
         return {"error": str(e)}
 
+
+@app.head("/")
+async def keep_alive():
+    # Respondemos con un simple "OK" (200) sin contenido
+    return Response(status_code=200)
+
 # --- 3. SERVIR FRONTEND (IMPORTANTE: VA AL FINAL) ---
 # Esto captura "todo lo demás" que no sea /render
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# 2. Servir el HTML en la raíz "/"
-from fastapi.responses import HTMLResponse
 
 @app.get("/")
 async def read_root():
