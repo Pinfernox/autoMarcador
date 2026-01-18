@@ -206,7 +206,7 @@ video {
   position: absolute;
   top: 20px;
   left: 20px;
-  width: 355px;
+  width: 320px;
   height: 28px;
   font-size: 13px;
   box-shadow: 2px 2px 4px rgba(0,0,0,0.5);
@@ -247,11 +247,11 @@ video {
 }
 
 /* --- POSICIONAMIENTO EXACTO --- */
-.box-liga  { left: 0px;   width: 35px; }
-.box-time  { left: 35px;  width: 60px; }
-.box-local { left: 95px;  width: 100px; }
-.box-score { left: 195px; width: 60px; }
-.box-visit { left: 255px; width: 100px; }
+/*.box-liga  { left: 0px;   width: 35px; }*/
+.box-time  { left: 0px;  width: 60px; }
+.box-local { left: 60px;  width: 100px; }
+.box-score { left: 160px; width: 60px; }
+.box-visit { left: 220px; width: 100px; }
 
 /* Placeholder liga */
 .logo-placeholder {

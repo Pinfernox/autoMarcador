@@ -1,174 +1,186 @@
 import ffmpeg
 import os
-import subprocess
+import sys
 
-# --- FUNCIÓN AUXILIAR PARA LEER EL TXT ---
-def parse_txt_events(txt_path):
-    events = []
-    local_score = 0
-    visitor_score = 0
+def render(video_path, events, config, output_path):
+    # 1. EXTRACCIÓN DE CONFIGURACIÓN
+    main_bg = config.get("main_bg", "0x1E90FF")
+    info_bg = config.get("info_bg", "0xFFFFFF")
+    text_color = config.get("text_color", "0x000000")
 
+    local_name = config.get("local_name", "LOCAL")
+    loc_s1 = config.get("loc_s1", "0xFFFFFF")
+    loc_s2 = config.get("loc_s2", "0x000000")
+
+    visit_name = config.get("visit_name", "VISIT")
+    vis_s1 = config.get("vis_s1", "0xFFFFFF")
+    vis_s2 = config.get("vis_s2", "0x000000")
+
+    # 2. CONFIGURACIÓN DE FUENTES
+    if os.path.exists("Inter-ExtraBold.ttf"):
+        font_bold = "Inter-ExtraBold.ttf"
+    elif os.path.exists("Inter-Bold.ttf"):
+        font_bold = "Inter-Bold.ttf"
+    elif os.path.exists("Inter.ttf"):
+        font_bold = "Inter.ttf"
+    elif os.path.exists("arial.ttf"):
+        font_bold = "arial.ttf"
+    else:
+        font_bold = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+        print("⚠️ Usando fuente del sistema")
+
+    # Detectamos resolución
     try:
-        with open(txt_path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line: continue
+        probe = ffmpeg.probe(video_path)
+        video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
+        width = int(video_stream['width'])
+    except:
+        width = 1280 
 
-                # 1. Separar Tiempo y Descripción
-                try:
-                    if " " in line:
-                        time_str, desc = line.split(" ", 1)
-                    else:
-                        continue 
-                    
-                    min_, sec = map(int, time_str.split(":"))
-                    t = min_ * 60 + sec
-                except ValueError:
-                    continue
-
-                # 2. Analizar Goles
-                desc_lower = desc.lower()
-                if desc_lower.startswith("gol"):
-                    # Lógica de detección (L) / (V)
-                    if "(v)" in desc_lower or "visitante" in desc_lower:
-                        visitor_score += 1
-                    elif "(l)" in desc_lower or "local" in desc_lower:
-                        local_score += 1
-                    else:
-                        # Si no especifica, asumimos Local
-                        local_score += 1
-                    
-                    # Añadimos el evento CON EL MARCADOR YA CALCULADO
-                    events.append({
-                        "time": t,
-                        "local": local_score,
-                        "visitor": visitor_score
-                    })
-    except Exception as e:
-        print(f"Error parseando TXT: {e}")
-        
-    return events
-
-# --- FUNCIÓN PRINCIPAL DE RENDER ---
-def render(video_path, txt_path, output_path, l_name, v_name, l_color, v_color):
-    print(f"--> Iniciando Render TXT: {video_path}")
-
-    # 1. CONFIGURACIÓN VISUAL (IGUAL AL CSS)
-    C_WHITE = "white"
-    C_BLUE  = "dodgerblue"
-    C_TEXT  = "black"
-    C_BLUE_LOCAL = l_color  
-    C_BLUE_VISIT = v_color
+    # -------------------------------------------------------------------------
+    # 3. AJUSTE DE TAMAÑO (TU VARIABLE CLAVE)
+    # -------------------------------------------------------------------------
+    # Cambia este número para hacer zoom:
+    # 720  = Gigante (Ocupa mucho)
+    # 900  = Grande (Estilo TV moderna) 
+    # 1280 = Pequeño (Sutil)
+    BASE_REF = 780.0 
     
-    Y_POS = 20
-    X_START = 20
-    H_BAR = 30
+    S = width / BASE_REF 
     
-    W_LIGA  = 35
-    W_TIME  = 60
-    W_TEAM  = 100
-    W_SCORE = 60
-    LOGO_H  = 20
-    FONT    = "Inter.ttf" 
+    fs_main = int(14 * S)
 
-    # 2. OBTENER EVENTOS DEL TXT
-    events = parse_txt_events(txt_path)
-    
-    # Duración por defecto (si no podemos saberla, ponemos 1 hora)
-    # Nota: FFmpeg cortará cuando acabe el video input
-    duration = 3600 
+    # Medidas base
+    H_BAR = 28 * S
+    Y_POS = 25 * S
+    X_START = 25 * S 
 
-    # 3. LAYOUT (COORDENADAS)
-    x_liga  = X_START
-    x_time  = x_liga + W_LIGA
+    W_TIME  = 60 * S
+    W_TEAM  = 100 * S
+    W_SCORE = 60 * S
+
+    # Coordenadas X
+    x_time  = X_START
     x_loc   = x_time + W_TIME
     x_score = x_loc  + W_TEAM
     x_vis   = x_score + W_SCORE
-    y_logo  = Y_POS + (H_BAR - LOGO_H) / 2
+
+    # Franjas
+    strip_w = 6 * S
+    strip_h = 16 * S
+    strip_y = Y_POS + (H_BAR - strip_h) / 2
+    
+    x_strip_loc = x_loc + (10 * S)
+    x_strip_vis = x_vis + W_TEAM - (10 * S) - (strip_w * 2) - 2 
 
     # 4. CONSTRUCCIÓN FFMPEG
-    filters = []
+    overlay_args = []
+
+    # --- 0) SOMBRA UNIFICADA (SOLUCIÓN AL CORTE BLANCO) ---
+    # Dibujamos UNA sola caja negra larga detrás de todo, en lugar de 4 trozos.
+    shadow_offset = 4 * S
+    shadow_alpha = 0.4
+    shadow_y = Y_POS + shadow_offset
     
-    # Rutas de assets
-    IMG_LIGA  = "static/assets/logo_liga.jpg"
-    IMG_LOCAL = "static/assets/logo_local.png"
-    IMG_VISIT = "static/assets/logo_visitante.png"
-
-    inputs = ["-i", video_path]
-    idx = 1
+    # Calculamos el ancho total de todo el marcador
+    total_width = W_TIME + W_TEAM + W_SCORE + W_TEAM
     
-    # Cargar imágenes si existen
-    for img in [IMG_LIGA, IMG_LOCAL, IMG_VISIT]:
-        if os.path.exists(img):
-            inputs.extend(["-i", img])
-            filters.append(f"[{idx}:v]scale=-1:{LOGO_H}[img_{idx}]")
-            idx += 1
-
-    # Cajas de fondo
-    boxes = [
-        f"drawbox=x={x_liga}:y={Y_POS}:w={W_LIGA}:h={H_BAR}:color={C_WHITE}:t=fill",
-        f"drawbox=x={x_time}:y={Y_POS}:w={W_TIME}:h={H_BAR}:color={C_WHITE}:t=fill",
-        f"drawbox=x={x_loc}:y={Y_POS}:w={W_TEAM}:h={H_BAR}:color={C_BLUE}:t=fill",
-        f"drawbox=x={x_score}:y={Y_POS}:w={W_SCORE}:h={H_BAR}:color={C_WHITE}:t=fill",
-        f"drawbox=x={x_vis}:y={Y_POS}:w={W_TEAM}:h={H_BAR}:color={C_BLUE}:t=fill"
-    ]
-    filters.append(f"[0:v]{','.join(boxes)}[bg]")
-    last_stream = "[bg]"
-
-    # Overlays de logos
-    if os.path.exists(IMG_LIGA):
-        filters.append(f"{last_stream}[img_1]overlay=x={x_liga}+({W_LIGA}-w)/2:y={y_logo}[v_l]")
-        last_stream = "[v_l]"
-    if os.path.exists(IMG_LOCAL):
-        filters.append(f"{last_stream}[img_2]overlay=x={x_loc}+5:y={y_logo}[v_loc]")
-        last_stream = "[v_loc]"
-    if os.path.exists(IMG_VISIT):
-        filters.append(f"{last_stream}[img_3]overlay=x={x_vis}+{W_TEAM}-w-5:y={y_logo}[v_vis]")
-        last_stream = "[v_vis]"
-
-    # Textos Fijos
-    timer_expr = r"%{eif\:t/60\:d\:2}\:%{eif\:mod(t,60)\:d\:2}"
-    text_cmds = [
-        f"drawtext=fontfile='{FONT}':text='{timer_expr}':x={x_time}+({W_TIME}-text_w)/2:y={Y_POS}+6:fontsize=16:fontcolor={C_TEXT}",
-        f"drawtext=fontfile='{FONT}':text='LOCAL':x={x_loc}+25+({W_TEAM}-25-text_w)/2:y={Y_POS}+6:fontsize=16:fontcolor={C_TEXT}",
-        f"drawtext=fontfile='{FONT}':text='VISIT':x={x_vis}+({W_TEAM}-25-text_w)/2:y={Y_POS}+6:fontsize=16:fontcolor={C_TEXT}"
-    ]
-
-    # Marcador Dinámico (Basado en el TXT parseado)
-    last_t = 0
-    curr_score = "0 - 0"
-    events.sort(key=lambda x: x['time'])
-
-    for e in events:
-        t_end = e["time"]
-        text_cmds.append(
-            f"drawtext=fontfile='{FONT}':text='{curr_score}':"
-            f"x={x_score}+({W_SCORE}-text_w)/2:y={Y_POS}+4:fontsize=20:fontcolor={C_TEXT}:"
-            f"enable='between(t,{last_t},{t_end})'"
-        )
-        curr_score = f"{e['local']} - {e['visitor']}"
-        last_t = t_end
-
-    # Tramo final
-    text_cmds.append(
-        f"drawtext=fontfile='{FONT}':text='{curr_score}':"
-        f"x={x_score}+({W_SCORE}-text_w)/2:y={Y_POS}+4:fontsize=20:fontcolor={C_TEXT}:"
-        f"enable='between(t,{last_t},{duration})'"
+    overlay_args.append(
+        f"drawbox=x={x_time+shadow_offset}:"
+        f"y={shadow_y}:"
+        f"w={total_width}:" # Ancho total
+        f"h={H_BAR}:"
+        f"color=black@{shadow_alpha}:t=fill"
     )
 
-    filters.append(f"{last_stream}{','.join(text_cmds)}")
-    
-    # Ejecutar
-    cmd = ["ffmpeg", "-y"]
-    cmd.extend(inputs)
-    cmd.extend(["-filter_complex", ";".join(filters)])
-    cmd.extend(["-c:v", "libx264",
-                "-preset", "veryfast",
-                "-crf", "18",
-                "-pix_fmt", "yuv420p",
-                "-c:a", "copy",
-                output_path])
+    # --- A) CAJAS DE FONDO ---
+    overlay_args.append(f"drawbox=x={x_time}:y={Y_POS}:w={W_TIME}:h={H_BAR}:color={info_bg}@1:t=fill")
+    overlay_args.append(f"drawbox=x={x_loc}:y={Y_POS}:w={W_TEAM}:h={H_BAR}:color={main_bg}@1:t=fill")
+    overlay_args.append(f"drawbox=x={x_score}:y={Y_POS}:w={W_SCORE}:h={H_BAR}:color={info_bg}@1:t=fill")
+    overlay_args.append(f"drawbox=x={x_vis}:y={Y_POS}:w={W_TEAM}:h={H_BAR}:color={main_bg}@1:t=fill")
 
-    print("Ejecutando FFmpeg...")
-    subprocess.run(cmd, check=True)
-    print(f"Render completado: {output_path}")
+    # --- B) INSIGNIAS ---
+    overlay_args.append(f"drawbox=x={x_strip_loc}:y={strip_y}:w={strip_w}:h={strip_h}:color={loc_s1}@1:t=fill")
+    overlay_args.append(f"drawbox=x={x_strip_loc+strip_w+2}:y={strip_y}:w={strip_w}:h={strip_h}:color={loc_s2}@1:t=fill")
+    overlay_args.append(f"drawbox=x={x_strip_vis}:y={strip_y}:w={strip_w}:h={strip_h}:color={vis_s1}@1:t=fill")
+    overlay_args.append(f"drawbox=x={x_strip_vis+strip_w+2}:y={strip_y}:w={strip_w}:h={strip_h}:color={vis_s2}@1:t=fill")
+
+    # --- C) TEXTOS FIJOS ---
+    text_offset_loc = x_strip_loc + (strip_w * 2) + (8 * S)
+    overlay_args.append(
+        f"drawtext=fontfile='{font_bold}':text='{local_name}':"
+        f"x={text_offset_loc}:"
+        f"y={Y_POS}+({H_BAR}-th)/2:"
+        f"fontsize={fs_main}:fontcolor={text_color}"
+    )
+
+    text_offset_vis = x_strip_vis - (8 * S)
+    overlay_args.append(
+        f"drawtext=fontfile='{font_bold}':text='{visit_name}':"
+        f"x={text_offset_vis}-tw:"
+        f"y={Y_POS}+({H_BAR}-th)/2:"
+        f"fontsize={fs_main}:fontcolor={text_color}"
+    )
+
+    # --- D) TEXTOS DINÁMICOS ---
+    
+    # Reloj
+    overlay_args.append(
+        f"drawtext=fontfile='{font_bold}':text='%{{pts\\:gmtime\\:0\\:%M\\\\\\:%S}}':"
+        f"x={x_time}+({W_TIME}-tw)/2:" 
+        f"y={Y_POS}+({H_BAR}-th)/2:"
+        f"fontsize={fs_main}:fontcolor={text_color}"
+    )
+
+    current_loc = 0
+    current_vis = 0
+    sorted_events = sorted(events, key=lambda x: x['time'])
+    last_time = 0
+    
+    if not sorted_events:
+        overlay_args.append(
+            f"drawtext=fontfile='{font_bold}':text='0 - 0':"
+            f"x={x_score}+({W_SCORE}-tw)/2:"
+            f"y={Y_POS}+({H_BAR}-th)/2:"
+            f"fontsize={fs_main}:fontcolor={text_color}"
+        )
+    else:
+        for i, ev in enumerate(sorted_events):
+            t_event = ev['time']
+            score_text = f"{current_loc} - {current_vis}"
+            overlay_args.append(
+                f"drawtext=fontfile='{font_bold}':text='{score_text}':"
+                f"enable='between(t,{last_time},{t_event})':"
+                f"x={x_score}+({W_SCORE}-tw)/2:"
+                f"y={Y_POS}+({H_BAR}-th)/2:"
+                f"fontsize={fs_main}:fontcolor={text_color}"
+            )
+            current_loc = ev['local']
+            current_vis = ev['visitor']
+            last_time = t_event
+        
+        final_score = f"{current_loc} - {current_vis}"
+        overlay_args.append(
+            f"drawtext=fontfile='{font_bold}':text='{final_score}':"
+            f"enable='gte(t,{last_time})':"
+            f"x={x_score}+({W_SCORE}-tw)/2:"
+            f"y={Y_POS}+({H_BAR}-th)/2:"
+            f"fontsize={fs_main}:fontcolor={text_color}"
+        )
+
+    filter_complex = ",".join(overlay_args)
+
+    try:
+        (
+            ffmpeg
+            .input(video_path)
+            .output(output_path, vf=filter_complex, vcodec='libx264', preset='ultrafast', crf=28, acodec='copy')
+            .overwrite_output()
+            .run(capture_stdout=True, capture_stderr=True)
+        )
+    except ffmpeg.Error as e:
+        error_msg = e.stderr.decode('utf8')
+        print("❌ CRITICAL FFMPEG ERROR:", error_msg)
+        raise Exception(error_msg)
+
+    return output_path
