@@ -10,22 +10,21 @@
 <body>
 
 <div class="dashboard-container">
-  
   <aside class="sidebar">
       <div class="logo-area">
         <h1>⚽ AutoMarcador</h1>
-        <span class="badge">BETA</span>
+        <span class="badge">OPEN SOURCE</span>
       </div>
 
       <div class="control-group">
         <h3>1. Archivos</h3>
-        <label class="file-drop-zone">
-          <span id="videoStatus">📂 Video MP4</span>
-          <input type="file" id="videoInput" accept="video/*" hidden>
+        <label class="custom-file-upload" style="margin-bottom: 10px;">
+          <input type="file" id="videoInput" accept="video/*">
+          <span id="videoStatusLabel">📂 Subir Video MP4</span>
         </label>
-        <label class="file-drop-zone">
-          <span id="eventStatus">📄 Datos TXT</span>
-          <input type="file" id="eventsInput" accept=".txt" hidden>
+        <label class="custom-file-upload">
+          <input type="file" id="eventsInput" accept=".txt">
+          <span id="eventStatusLabel">📄 Subir Datos TXT</span>
         </label>
       </div>
 
@@ -34,120 +33,195 @@
         <button id="btnOpenConfig" class="btn-secondary">🖌️ Abrir Personalización</button>
       </div>
 
-      <div class="control-group">
-        <div class="info-box">
-          <p><strong>Plan Gratuito:</strong></p>
-          <ul>
-            <li>Resolución 720p</li>
-            <li>Marca de agua activa</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="ad-placeholder">Espacio Publicitario</div>
-
       <button id="btnRender" class="btn-primary">🚀 Renderizar Video</button>
+
+      <div id="progressContainer" class="progress-container hidden">
+          <div class="progress-header">
+              <span id="progressText">0%</span>
+              <span id="progressStatus">Subiendo...</span>
+          </div>
+          <div class="progress-track">
+              <div id="progressBar" class="progress-fill"></div>
+          </div>
+      </div>
   </aside>
+  
 
   <main class="main-content">
     <div class="video-wrapper">
       <div class="player-container">
         <video id="video" controls></video>
         
-        <div class="tv-overlay">
+        <div class="tv-overlay" id="scoreboardOverlay">
 
-          <div class="tv-box box-white box-time">
-            <span id="time">00:00</span>
+          <div class="tv-box box-white box-liga" id="boxLiga">
+             <img id="previewLogoLiga" class="liga-logo-img hidden" src="" alt="Liga">
+             <span id="ligaPlaceholder" style="font-size:10px; color:#ccc;">TV</span>
           </div>
 
-          <div class="tv-box box-blue box-team box-local">
-            <div class="team-colors">
-              <span class="color-strip strip-1"></span>
-              <span class="color-strip strip-2"></span>
+          <div class="tv-box box-white box-time" id="boxTime">
+             <span id="time">00:00</span>
+          </div>
+
+          <div class="tv-box box-blue box-team box-local" id="boxLocal">
+            <img id="previewLogoLocal" class="team-logo hidden" src="" alt="Local">
+            <div class="team-colors" id="stripsLocal">
+              <span class="color-strip strip-1" id="stripLoc1"></span>
+              <span class="color-strip strip-2" id="stripLoc2"></span>
             </div>
             <span class="team-name" id="local">LOCAL</span>
           </div>
 
-          <div class="tv-box box-white box-score">
+          <div class="tv-box box-white box-score" id="boxScore">
             <span id="score">0 - 0</span>
           </div>
 
-          <div class="tv-box box-blue box-team box-visit">
+          <div class="tv-box box-blue box-team box-visit" id="boxVisit">
             <span class="team-name" id="visitor">VISIT.</span>
-            <div class="team-colors">
-              <span class="color-strip strip-1"></span>
-              <span class="color-strip strip-2"></span>
+            <img id="previewLogoVisit" class="team-logo hidden" src="" alt="Visit">
+            <div class="team-colors" id="stripsVisit">
+              <span class="color-strip strip-1" id="stripVis1"></span>
+              <span class="color-strip strip-2" id="stripVis2"></span>
             </div>
           </div>
 
         </div>
-
-        </div>
+      </div>
     </div>
   </main>
-
 </div>
 
 <div id="configModal" class="modal-overlay hidden">
   <div class="modal-content">
     <div class="modal-header">
-      <h2>🛠️ Configuración del Marcador</h2>
+      <h2>🛠️ Configuración Completa</h2>
       <button id="btnCloseConfig" class="close-btn">&times;</button>
     </div>
 
     <div class="modal-body">
       
-      <fieldset>
-        <legend>Estilo General</legend>
-        <div class="config-grid">
+      <div class="config-grid-row">
+        <fieldset>
+          <legend>Estilo General</legend>
           <div class="input-group">
-            <label>Fondo Principal (Equipos)</label>
+            <label>Fondo Principal</label>
             <input type="color" id="cfgMainBg" value="#1E90FF">
           </div>
           <div class="input-group">
-            <label>Fondo Datos (Goles/Tiempo)</label>
+            <label>Fondo Datos (y Liga)</label>
             <input type="color" id="cfgInfoBg" value="#ffffff">
           </div>
           <div class="input-group">
-            <label>Color Texto</label>
+            <label>Texto</label>
             <input type="color" id="cfgTextColor" value="#000000">
           </div>
-        </div>
-      </fieldset>
+          <div class="input-group">
+            <label>Redondez de Franjas</label>
+            <input type="range" id="cfgStripRadius" min="0" max="10" step="1" value="2" style="width:100%; cursor: pointer;">
+          </div>
+        </fieldset>
+
+        <fieldset>
+            <legend>Competición / TV</legend>
+            
+            <div class="input-group" style="margin-bottom: 15px; flex-direction: row; align-items: center; gap: 10px;">
+                <input type="checkbox" id="chkShowLiga" checked style="width: auto;">
+                <label for="chkShowLiga" style="margin:0; cursor:pointer;">Mostrar Logo de Competición / TV</label>
+            </div>
+
+            <div class="input-group full-width">
+                <label>Logo de Liga</label>
+                <div class="file-input-wrapper">
+                    <label class="custom-file-upload">
+                        <input type="file" id="imgLiga" accept="image/png, image/jpeg">
+                        <span id="labelImgLiga">🖼️ Imagen</span>
+                    </label>
+                    <button type="button" id="btnDelLiga" class="btn-delete-img" title="Eliminar Logo">X</button>
+                </div>
+            </div>
+            <p class="limit-note" style="margin-top:10px;">Aparece en su propia caja a la izquierda.</p>
+        </fieldset>
+      </div>
 
       <fieldset>
         <legend>Equipo Local</legend>
-        <div class="config-grid">
-          <div class="input-group full-width">
-            <label>Nombre (Máx 6 letras)</label>
-            <input type="text" id="inputLocalName" placeholder="LOCAL" maxlength="6">
-          </div>
-          <div class="input-group">
-            <label>Franja 1</label>
-            <input type="color" id="cfgLocStrip1" value="#ffffff">
-          </div>
-          <div class="input-group">
-            <label>Franja 2</label>
-            <input type="color" id="cfgLocStrip2" value="#000000">
-          </div>
+        <div class="config-grid-row">
+            <div class="col-left">
+                <div class="input-group">
+                    <label>Nombre (Máx 6)</label>
+                    <input type="text" id="inputLocalName" placeholder="LOCAL" maxlength="6">
+                </div>
+                <div class="input-group">
+                    <label>Escudo</label>
+                    <div class="file-input-wrapper">
+                        <label class="custom-file-upload">
+                            <input type="file" id="imgLocal" accept="image/png, image/jpeg">
+                            <span id="labelImgLocal">🛡️ Subir</span>
+                        </label>
+                        <button type="button" id="btnDelLocal" class="btn-delete-img" title="Eliminar Escudo">X</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-right">
+                <div class="input-group">
+                    <label>Estilo Insignia (Sin logo)</label>
+                    <select id="styleLocal" style="width:100%; padding:10px; background:#222; color:white; border:1px solid #444; border-radius:4px;">
+                        <option value="stripes">Franjas Verticales ||</option>
+                        <option value="split">Línea Bicolor ⬒</option>
+                    </select>
+                </div>
+                <div class="config-grid" style="margin-top:10px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="input-group">
+                        <label>Color A</label>
+                        <input type="color" id="cfgLocStrip1" value="#ffffff">
+                    </div>
+                    <div class="input-group">
+                        <label>Color B</label>
+                        <input type="color" id="cfgLocStrip2" value="#000000">
+                    </div>
+                </div>
+            </div>
         </div>
       </fieldset>
 
       <fieldset>
         <legend>Equipo Visitante</legend>
-        <div class="config-grid">
-          <div class="input-group full-width">
-            <label>Nombre (Máx 6 letras)</label>
-            <input type="text" id="inputVisitName" placeholder="VISIT" maxlength="6">
-          </div>
-          <div class="input-group">
-            <label>Franja 1</label>
-            <input type="color" id="cfgVisStrip1" value="#ffffff">
-          </div>
-          <div class="input-group">
-            <label>Franja 2</label>
-            <input type="color" id="cfgVisStrip2" value="#000000">
-          </div>
+        <div class="config-grid-row">
+            <div class="col-left">
+                <div class="input-group">
+                    <label>Nombre (Máx 6)</label>
+                    <input type="text" id="inputVisitName" placeholder="VISIT" maxlength="6">
+                </div>
+                <div class="input-group">
+                    <label>Escudo</label>
+                    <div class="file-input-wrapper">
+                        <label class="custom-file-upload">
+                            <input type="file" id="imgVisit" accept="image/png, image/jpeg">
+                            <span id="labelImgVisit">🛡️ Subir</span>
+                        </label>
+                        <button type="button" id="btnDelVisit" class="btn-delete-img" title="Eliminar Escudo">X</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-right">
+                <div class="input-group">
+                    <label>Estilo Insignia (Sin logo)</label>
+                    <select id="styleVisit" style="width:100%; padding:10px; background:#222; color:white; border:1px solid #444; border-radius:4px;">
+                        <option value="stripes">Franjas Verticales ||</option>
+                        <option value="split">Línea Bicolor ⬒</option>
+                    </select>
+                </div>
+                <div class="config-grid" style="margin-top:10px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="input-group">
+                        <label>Color A</label>
+                        <input type="color" id="cfgVisStrip1" value="#ffffff">
+                    </div>
+                    <div class="input-group">
+                        <label>Color B</label>
+                        <input type="color" id="cfgVisStrip2" value="#000000">
+                    </div>
+                </div>
+            </div>
         </div>
       </fieldset>
 
@@ -160,14 +234,5 @@
 </div>
 
 <script src="static/preview.js"></script>
-<script>
-  // Script rápido para cambiar el texto de los botones al subir archivo
-  document.getElementById('videoInput').addEventListener('change', function(){
-      if(this.files[0]) document.getElementById('videoStatus').innerText = "✅ " + this.files[0].name;
-  });
-  document.getElementById('eventsInput').addEventListener('change', function(){
-      if(this.files[0]) document.getElementById('eventStatus').innerText = "✅ " + this.files[0].name;
-  });
-</script>
 </body>
 </html>

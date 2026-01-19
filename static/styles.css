@@ -1,409 +1,246 @@
 /* =========================================
-   1. VARIABLES GLOBALES (CSS VARIABLES)
+   1. VARIABLES GLOBALES
    ========================================= */
 :root {
-  /* --- COLORES DE LA INTERFAZ --- */
   --bg-dark: #121212;
   --bg-panel: #1e1e1e;
   --primary: #3a86ff;
   --primary-hover: #2667cc;
   --text-main: #ffffff;
-  --text-muted: #aaaaaa;
-
+  --strip-radius: 2px;
+  
   /* --- COLORES DEL MARCADOR (Configurables) --- */
-  /* Estructura General */
-  --sb-bg-main: dodgerblue;  /* Fondo cajas equipos */
-  --sb-bg-info: white;       /* Fondo tiempo/goles */
-  --sb-text: black;          /* Color texto */
+  /* Al usar !important en las clases, el JS debe modificar ESTAS variables */
+  --sb-bg-main: #1E90FF;  /* Fondo cajas equipos */
+  --sb-bg-info: #ffffff;  /* Fondo tiempo/goles/liga */
+  --sb-text: #000000;     /* Color texto */
   
-  /* Franjas Equipo Local */
-  --loc-s1: white;
-  --loc-s2: black;
-  
-  /* Franjas Equipo Visitante */
-  --vis-s1: white;
-  --vis-s2: black;
+  --loc-s1: white; --loc-s2: black;
+  --vis-s1: white; --vis-s2: black;
 }
 
 /* =========================================
-   2. RESET Y BASICS
+   2. BASICS & SCROLLBAR
    ========================================= */
 body {
-  margin: 0;
-  font-family: 'Inter', sans-serif;
-  background-color: var(--bg-dark);
-  color: var(--text-main);
-  height: 100vh;
-  overflow: hidden;
+  margin: 0; font-family: 'Inter', sans-serif;
+  background-color: var(--bg-dark); color: var(--text-main);
+  height: 100vh; overflow: hidden;
 }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #1e1e1e; }
+::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
 
 /* =========================================
-   3. LAYOUT PRINCIPAL (GRID)
+   3. LAYOUT & SIDEBAR
    ========================================= */
-.dashboard-container {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  height: 100vh;
-}
+.dashboard-container { display: grid; grid-template-columns: 315px 1fr; height: 100vh; }
+.sidebar { background-color: var(--bg-panel); padding: 20px; border-right: 1px solid #333; display: flex; flex-direction: column; gap: 20px; }
+.logo-area h1 { font-size: 1.2rem; margin: 0; display: inline-block; }
+.badge { background: #ff0055; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 8px; }
 
-/* =========================================
-   4. SIDEBAR (PANEL IZQUIERDO)
-   ========================================= */
-.sidebar {
-  background-color: var(--bg-panel);
-  padding: 20px;
-  border-right: 1px solid #333;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+/* Inputs Sidebar */
+input[type="file"] { display: none; }
+.custom-file-upload {
+    flex-grow: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+    background-color: #2a2a2a; border: 1px solid #444; border-radius: 6px; padding: 8px 12px;
+    color: #ccc; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;
 }
-
-.logo-area h1 {
-  font-size: 1.2rem;
-  margin: 0;
-  display: inline-block;
-}
-
-.badge {
-  background: #ff0055;
-  font-size: 0.7rem;
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-left: 8px;
-}
-
-.control-group h3 {
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  margin-bottom: 10px;
-}
-
-/* Botones de subida de archivo */
-.file-drop-zone {
-  display: block;
-  background: #2a2a2a;
-  border: 1px dashed #444;
-  padding: 15px;
-  border-radius: 6px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-bottom: 10px;
-  font-size: 0.9rem;
-  color: #ccc;
-}
-
-.file-drop-zone:hover {
-  border-color: var(--primary);
-  background: #2f2f2f;
-  color: white;
-}
-
-.info-box {
-  background: rgba(255, 255, 255, 0.05);
-  padding: 10px;
-  border-radius: 6px;
-  font-size: 0.85rem;
-}
-
-.info-box ul {
-  padding-left: 20px;
-  margin: 5px 0 0 0;
-  color: var(--text-muted);
-}
-
-.ad-placeholder {
-  height: 100px;
-  background: #000;
-  border: 1px solid #333;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #555;
-  font-size: 0.8rem;
-}
-
-/* Botón Renderizar */
-.btn-primary {
-  background-color: var(--primary);
-  color: white;
-  border: none;
-  padding: 15px;
-  border-radius: 6px;
-  font-weight: bold;
-  font-size: 1rem;
-  cursor: pointer;
-  margin-top: auto;
-  transition: background 0.2s;
-}
-
-.btn-primary:hover {
-  background: var(--primary-hover);
-}
-
-/* Botón Abrir Configuración */
-.btn-secondary {
-  background: #444;
-  color: white;
-  border: none;
-  padding: 10px;
-  width: 100%;
-  border-radius: 6px;
-  cursor: pointer;
-  margin-top: 5px;
-  font-size: 0.9rem;
-  transition: background 0.2s;
-}
+.custom-file-upload:hover { background-color: #333; border-color: #666; color: white; }
+.btn-primary { background-color: var(--primary); color: white; border: none; padding: 15px; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: auto; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-secondary { background: #444; color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; cursor: pointer; }
 .btn-secondary:hover { background: #555; }
 
-.limit-note {
-  font-size: 0.75rem;
-  color: #666;
-  margin: 0 0 10px 0;
-  font-style: italic;
-}
-
-
 /* =========================================
-   5. MAIN CONTENT (VIDEO PLAYER)
+   4. VIDEO PLAYER
    ========================================= */
-.main-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #000;
-  padding: 40px;
-}
-
-.video-wrapper {
-  width: 100%;
-  max-width: 1000px;
-  aspect-ratio: 16 / 9;
-  background: #111;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-}
-
-.player-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-video {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
+.main-content { display: flex; align-items: center; justify-content: center; background: #000; padding: 40px; }
+.video-wrapper { width: 100%; max-width: 1000px; aspect-ratio: 16 / 9; background: #111; border-radius: 8px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; }
+.player-container { position: relative; width: 100%; height: 100%; }
+video { width: 100%; height: 100%; object-fit: contain; }
 
 /* =========================================
-   6. TV OVERLAY (EL MARCADOR)
+   5. TV OVERLAY (MARCADOR) - CORREGIDO
    ========================================= */
 .tv-overlay {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  width: 320px;
-  height: 28px;
-  font-size: 13px;
-  box-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-  pointer-events: none;
-  /* Asegurar que las cajas hijas hereden la fuente */
-  font-family: 'Inter', sans-serif; 
+    position: absolute;
+    top: 30px; left: 30px;
+    height: 36px;
+    width: 360px; /* Ancho con Liga */
+    font-family: 'Inter', sans-serif;
+    pointer-events: none;
+    z-index: 10;
+    transition: width 0.3s ease;
 }
 
 .tv-box {
-  position: absolute;
-  top: 0;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800; /* Más grueso para parecerse a la TV */
-  color: var(--sb-text); /* Color texto dinámico */
+    position: absolute; top: 0; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 13px;
+    color: var(--sb-text);
+    transition: left 0.3s ease;
 }
 
-.tv-box span {
-  position: relative;
-  top: 1px; /* Ajuste óptico vertical */
+/* --- CLASES DE COLOR Y ESTRUCTURA UNIFICADA --- */
+
+/* Cajas de Equipos */
+.box-team { 
+    background-color: var(--sb-bg-main) !important; /* Importante para que funcione la variable */
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Centrado */
+    gap: 10px; /* Espacio limpio entre elementos */
+    padding: 0 8px; 
+    box-sizing: border-box;
 }
 
-/* --- CLASES DE COLOR DINÁMICAS --- */
-/* Cajas de Equipos (Azul por defecto) */
-.box-team {
-  background-color: var(--sb-bg-main) !important; 
-  justify-content: flex-start; /* Alineado izquierda/derecha */
-  gap: 8px;
-  padding: 0 10px;
-  box-sizing: border-box;
+/* Cajas de Info (Blanco) */
+.box-white { 
+    background-color: var(--sb-bg-info) !important; 
 }
 
-/* Cajas de Info (Blanco por defecto) */
-.box-white {
-  background-color: var(--sb-bg-info) !important;
+/* --- POSICIONAMIENTO (Modo Normal - Con Liga) --- */
+.box-liga  { left: 0px;   width: 40px; z-index: 12; }
+.box-time  { left: 40px;  width: 60px; }
+.box-local { left: 100px; width: 100px; }
+.box-score { left: 200px; width: 60px; }
+.box-visit { left: 260px; width: 100px; }
+
+/* --- LOGOS E IMÁGENES --- */
+.liga-logo-img { height: 24px; width: 24px; object-fit: contain; }
+
+.team-logo { 
+    height: 22px; width: 22px; object-fit: contain; 
+    margin: 0; /* Quitamos márgenes porque usamos GAP en el padre */
+    z-index: 2; 
 }
+.hidden { display: none !important; }
 
-/* --- POSICIONAMIENTO EXACTO --- */
-/*.box-liga  { left: 0px;   width: 35px; }*/
-.box-time  { left: 0px;  width: 60px; }
-.box-local { left: 60px;  width: 100px; }
-.box-score { left: 160px; width: 60px; }
-.box-visit { left: 220px; width: 100px; }
-
-/* Placeholder liga */
-.logo-placeholder {
-  font-size: 8px;
-  color: #666;
-  font-weight: bold;
-}
-
-/* Nombre del equipo */
-.team-name {
-  white-space: nowrap;
-  font-size: 13px;
-  text-transform: uppercase;
-}
-
-
-/* =========================================
-   7. FRANJAS DE COLORES (INSIGNIAS)
-   ========================================= */
+/* --- INSIGNIAS (FRANJAS) --- */
 .team-colors {
-  display: flex;
-  gap: 2px;
-  height: 16px; /* Altura de la insignia */
-  align-items: center;
-  /* padding: 0 5px; Eliminado padding extra */
+    display: flex; flex-direction: row;
+    width: 8px; height: 20px;
+    border-radius: var(--strip-radius); overflow: hidden; gap: 0;
+    margin: 0; /* El GAP del padre se encarga de la separación */
 }
+.color-strip { flex-grow: 1; height: 100%; box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
 
-.color-strip {
-  width: 6px;       /* Ancho de cada franja */
-  height: 100%;     /* Alto completo */
-  display: block;
-  border-radius: 1px;
-  /* Sombra suave para dar volumen */
-  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+/* --- ESTILO LÍNEA BICOLOR (NUEVO: MÁS FINA) --- */
+.team-colors.style-split {
+    flex-direction: column !important;
+    width: 4px !important;
 }
+.team-colors.style-split .color-strip { width: 100% !important; height: 50% !important; border-radius: 0 !important; }
 
-/* Asignar variables a las franjas específicas */
+/* Colores asignados */
 .box-local .strip-1 { background-color: var(--loc-s1); }
 .box-local .strip-2 { background-color: var(--loc-s2); }
-
 .box-visit .strip-1 { background-color: var(--vis-s1); }
 .box-visit .strip-2 { background-color: var(--vis-s2); }
 
+/* =========================================
+   6. MODO "NO LIGA" (COMPACTO IZQUIERDA)
+   ========================================= */
+.tv-overlay.no-liga {
+    width: 320px; /* Reducimos 40px */
+}
+.tv-overlay.no-liga .box-liga { display: none; }
+
+/* Recalculamos posiciones restando 40px */
+.tv-overlay.no-liga .box-time  { left: 0px; }
+.tv-overlay.no-liga .box-local { left: 60px; }
+.tv-overlay.no-liga .box-score { left: 160px; }
+.tv-overlay.no-liga .box-visit { left: 220px; }
+
 
 /* =========================================
-   8. VENTANA MODAL (CONFIGURACIÓN)
+   7. MODAL CONFIGURACIÓN
    ========================================= */
-.modal-overlay {
-  position: fixed;
-  top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  backdrop-filter: blur(5px);
-}
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); }
+.modal-content { background: #1e1e1e; width: 95%; max-width: 850px; border-radius: 10px; border: 1px solid #333; display: flex; flex-direction: column; max-height: 90vh; }
+.modal-header { padding: 15px 20px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; background: #252525; border-radius: 10px 10px 0 0; }
+.modal-body { padding: 20px; overflow-y: auto; }
+.modal-footer { padding: 15px 20px; border-top: 1px solid #333; text-align: right; background: #252525; border-radius: 0 0 10px 10px; }
+.close-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
 
-.hidden { display: none; }
-
-.modal-content {
-  background: #1e1e1e;
-  width: 90%;
-  max-width: 500px;
-  border-radius: 10px;
-  border: 1px solid #333;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-  display: flex;
-  flex-direction: column;
-  max-height: 90vh; 
-}
-
-.modal-header {
-  padding: 15px 20px;
-  border-bottom: 1px solid #333;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #252525;
-  border-radius: 10px 10px 0 0;
-}
-
-.modal-body {
-  padding: 20px;
-  overflow-y: auto; 
-}
-
-.modal-footer {
-  padding: 15px 20px;
-  border-top: 1px solid #333;
-  text-align: right;
-  background: #252525;
-  border-radius: 0 0 10px 10px;
-}
-
-/* Botón cerrar (X) */
-.close-btn {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 1.5rem;
-  cursor: pointer;
-}
-
-/* Formularios del Modal */
-fieldset {
-  border: 1px solid #444;
-  border-radius: 6px;
-  margin-bottom: 20px;
-  padding: 15px;
-}
-
-legend {
-  color: #aaa;
-  font-size: 0.9rem;
-  padding: 0 5px;
-  font-weight: bold;
-}
-
-.config-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-}
-
+/* Grid del Modal */
+.config-grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 20px; }
+.config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 .full-width { grid-column: span 2; }
+fieldset { border: 1px solid #444; border-radius: 6px; padding: 15px; margin-bottom: 0; }
+legend { color: #aaa; font-size: 0.9rem; font-weight: bold; padding: 0 5px; }
 
-.input-group label {
-  display: block;
-  font-size: 0.8rem;
-  color: #ccc;
-  margin-bottom: 5px;
+/* Inputs Modal */
+.input-group label { display: block; font-size: 0.8rem; color: #ccc; margin-bottom: 5px; }
+.input-group input[type="text"] { width: 100%; background: #111; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; text-transform: uppercase; box-sizing: border-box; }
+.input-group input[type="color"] { width: 100%; height: 40px; border: none; background: none; cursor: pointer; }
+.file-input-wrapper { display: flex; gap: 5px; align-items: center; }
+.btn-delete-img { background: #442222; color: #ff5555; border: 1px solid #663333; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-weight: bold; display: none; }
+.btn-delete-img.visible { display: block; }
+
+/* --- BARRA DE PROGRESO --- */
+.progress-container {
+    margin-top: 15px;
+    background: #252525;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #333;
 }
 
-/* Inputs dentro del Modal */
-.input-group input[type="text"] {
-  width: 100%;
-  background: #111;
-  border: 1px solid #444;
-  color: white;
-  padding: 8px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  font-family: 'Inter', sans-serif;
-  box-sizing: border-box; /* Importante para no salirse */
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #ccc;
+    margin-bottom: 5px;
 }
 
-.input-group input[type="color"] {
-  width: 100%;
-  height: 40px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  box-sizing: border-box;
+.progress-track {
+    width: 100%;
+    height: 8px;
+    background: #111;
+    border-radius: 4px;
+    overflow: hidden;
 }
+
+.progress-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--primary);
+    border-radius: 4px;
+    transition: width 0.2s ease;
+}
+
+/* --- BARRA DE PROGRESO --- */
+/* (Mantén el resto de estilos de la barra igual, solo cambia desde .processing hacia abajo) */
+
+/* Animación cuando está renderizando (Indeterminado) */
+.progress-fill.processing {
+    background-color: var(--primary);
+
+    background-image: linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.25) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.25) 50%,
+        rgba(255, 255, 255, 0.25) 75%,
+        transparent 75%,
+        transparent
+    );
+
+    background-size: 25px 25px;
+    animation: stripe-move 0.8s linear infinite;
+}
+
+
+@keyframes stripe-move {
+    from { background-position: 0 0; }
+    to   { background-position: 25px 25px; }
+}
+
+
+.hidden { display: none !important; }
