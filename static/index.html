@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AutoMarcador Studio</title>
+  <link rel="icon" href="/static/favicon.ico">
   <link rel="stylesheet" href="static/styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
@@ -115,10 +116,6 @@
             <label>Texto</label>
             <input type="color" id="cfgTextColor" value="#000000">
           </div>
-          <div class="input-group">
-            <label>Redondez de Franjas</label>
-            <input type="range" id="cfgStripRadius" min="0" max="10" step="1" value="2" style="width:100%; cursor: pointer;">
-          </div>
         </fieldset>
 
         <fieldset>
@@ -130,7 +127,9 @@
             </div>
 
             <div class="input-group full-width">
-                <label>Logo de Liga</label>
+                <label>Logo de Liga 
+                    <span class="tooltip" data-text="PNG Transparente. Ideal 500x500px">?</span>
+                </label>
                 <div class="file-input-wrapper">
                     <label class="custom-file-upload">
                         <input type="file" id="imgLiga" accept="image/png, image/jpeg">
@@ -152,7 +151,9 @@
                     <input type="text" id="inputLocalName" placeholder="LOCAL" maxlength="6">
                 </div>
                 <div class="input-group">
-                    <label>Escudo</label>
+                    <label>Escudo 
+                        <span class="tooltip" data-text="PNG Transparente. Ideal 500x500px">?</span>
+                    </label>
                     <div class="file-input-wrapper">
                         <label class="custom-file-upload">
                             <input type="file" id="imgLocal" accept="image/png, image/jpeg">
@@ -193,7 +194,9 @@
                     <input type="text" id="inputVisitName" placeholder="VISIT" maxlength="6">
                 </div>
                 <div class="input-group">
-                    <label>Escudo</label>
+                    <label>Escudo 
+                        <span class="tooltip" data-text="PNG Transparente. Ideal 500x500px">?</span>
+                    </label>
                     <div class="file-input-wrapper">
                         <label class="custom-file-upload">
                             <input type="file" id="imgVisit" accept="image/png, image/jpeg">

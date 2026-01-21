@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
         mainBg: document.getElementById('cfgMainBg'),
         infoBg: document.getElementById('cfgInfoBg'),
         textColor: document.getElementById('cfgTextColor'),
-        stripRadiusInput: document.getElementById('cfgStripRadius'),
 
         // Franjas y Estilos
         cfgLocStrip1: document.getElementById('cfgLocStrip1'),
@@ -72,7 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if(els.cfgLocStrip2) els.cfgLocStrip2.addEventListener('input', (e) => updateCssVar('--loc-s2', e.target.value));
     if(els.cfgVisStrip1) els.cfgVisStrip1.addEventListener('input', (e) => updateCssVar('--vis-s1', e.target.value));
     if(els.cfgVisStrip2) els.cfgVisStrip2.addEventListener('input', (e) => updateCssVar('--vis-s2', e.target.value));
-    if(els.stripRadiusInput) els.stripRadiusInput.addEventListener('input', (e) => updateCssVar('--strip-radius', e.target.value + 'px'));
 
     // --- 3. TEXTOS Y ESTILOS ---
     if(els.localNameInput) els.localNameInput.addEventListener('input', (e) => els.localName.innerText = e.target.value || "LOCAL");
@@ -206,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (percentComplete < 100) {
                         els.progressBar.style.width = percentComplete + "%";
                         els.progressText.innerText = percentComplete + "%";
-                        els.progressStatus.innerText = "Subiendo archivos al servidor...";
+                        els.progressStatus.innerText = "Subiendo archivos...";
                     } else {
                         els.progressStatus.innerText = "🎥 Renderizando video... (Esto puede tardar)";
                         els.progressText.innerText = "Procesando…";
@@ -229,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = "resumen_partido.mp4";
+                    a.download = "partido_con_marcador.mp4";
                     document.body.appendChild(a);
                     a.click();
                     a.remove();

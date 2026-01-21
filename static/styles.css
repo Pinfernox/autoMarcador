@@ -7,7 +7,7 @@
   --primary: #3a86ff;
   --primary-hover: #2667cc;
   --text-main: #ffffff;
-  --strip-radius: 2px;
+  --strip-radius: 0px;
   
   /* --- COLORES DEL MARCADOR (Configurables) --- */
   /* Al usar !important en las clases, el JS debe modificar ESTAS variables */
@@ -244,3 +244,74 @@ legend { color: #aaa; font-size: 0.9rem; font-weight: bold; padding: 0 5px; }
 
 
 .hidden { display: none !important; }
+
+/* --- TOOLTIP (Signo de Interrogación) --- */
+.tooltip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background-color: #444;
+  color: #ccc;
+  border-radius: 50%;
+  font-size: 10px;
+  margin-left: 6px;
+  cursor: help;
+  position: relative;
+  font-weight: bold;
+}
+
+.tooltip:hover {
+  background-color: var(--primary);
+  color: white;
+}
+
+/* El cuadro de texto que aparece */
+.tooltip:hover::after {
+  content: attr(data-text); /* Coge el texto del HTML */
+  position: absolute;
+  bottom: 125%; /* Aparece arriba */
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  z-index: 100;
+  border: 1px solid #333;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+/* Flechita pequeña abajo del tooltip */
+.tooltip:hover::before {
+  content: "";
+  position: absolute;
+  bottom: 85%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: rgba(0, 0, 0, 0.9) transparent transparent transparent;
+}
+
+/* =========================================
+   AJUSTES DE ESPACIADO (MARGENES)
+   ========================================= */
+
+/* 1. Separación entre los Fieldsets (Las cajas grandes de Local y Visitante) */
+fieldset {
+    margin-bottom: 15px; /* Aumentado para separar los bloques de equipos */
+}
+
+/* 2. Separación entre campos (Nombre y Escudo) */
+.input-group {
+    margin-bottom: 10px; /* Aumenta el espacio vertical entre inputs */
+}
+
+/* Aseguramos que el último input no empuje el borde inferior innecesariamente */
+.input-group:last-child {
+    margin-bottom: 0;
+}
