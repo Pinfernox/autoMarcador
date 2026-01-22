@@ -1,0 +1,10 @@
+__pycache__
+venv
+.git
+.gitignore
+uploads/*
+outputs/*
+ffmpeg.exe
+ffprobe.exe
+bin/
+README.md

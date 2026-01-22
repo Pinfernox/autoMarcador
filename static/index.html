@@ -44,6 +44,7 @@
           <div class="progress-track">
               <div id="progressBar" class="progress-fill"></div>
           </div>
+          <div id="estimatedTimeLabel" class="estimate-text hidden">⏱️ Tiempo estimado: Calculando...</div>
       </div>
   </aside>
   
@@ -128,7 +129,7 @@
 
             <div class="input-group full-width">
                 <label>Logo de Liga 
-                    <span class="tooltip" data-text="PNG Transparente. Ideal 500x500px">?</span>
+                    <span class="tooltip" data-text="PNG Transparente. Ideal 512x512px">?</span>
                 </label>
                 <div class="file-input-wrapper">
                     <label class="custom-file-upload">
@@ -152,7 +153,7 @@
                 </div>
                 <div class="input-group">
                     <label>Escudo 
-                        <span class="tooltip" data-text="PNG Transparente. Ideal 500x500px">?</span>
+                        <span class="tooltip" data-text="PNG Transparente. Ideal 512x512px">?</span>
                     </label>
                     <div class="file-input-wrapper">
                         <label class="custom-file-upload">
@@ -195,7 +196,7 @@
                 </div>
                 <div class="input-group">
                     <label>Escudo 
-                        <span class="tooltip" data-text="PNG Transparente. Ideal 500x500px">?</span>
+                        <span class="tooltip" data-text="PNG Transparente. Ideal 512x512px">?</span>
                     </label>
                     <div class="file-input-wrapper">
                         <label class="custom-file-upload">
@@ -235,7 +236,7 @@
     </div>
   </div>
 </div>
-
+<div id="toast-container" class="toast-container"></div>
 <script src="static/preview.js"></script>
 </body>
 </html>

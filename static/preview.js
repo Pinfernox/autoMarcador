@@ -1,15 +1,13 @@
-console.log("✅ preview.js cargado (Versión con Barra de Progreso)");
+console.log("✅ preview.js cargado (Versión Estética)");
 
 document.addEventListener('DOMContentLoaded', () => {
     
     // --- 1. REFERENCIAS DOM ---
     const els = {
-        // Contenedor General
+        // ... (Tus referencias anteriores se mantienen igual) ...
         scoreboardOverlay: document.getElementById('scoreboardOverlay'),
         videoPlayer: document.getElementById('video'),
         chkShowLiga: document.getElementById('chkShowLiga'),
-
-        // Textos y Colores
         localName: document.getElementById('local'),
         visitName: document.getElementById('visitor'),
         localNameInput: document.getElementById('inputLocalName'),
@@ -17,8 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
         mainBg: document.getElementById('cfgMainBg'),
         infoBg: document.getElementById('cfgInfoBg'),
         textColor: document.getElementById('cfgTextColor'),
-
-        // Franjas y Estilos
         cfgLocStrip1: document.getElementById('cfgLocStrip1'),
         cfgLocStrip2: document.getElementById('cfgLocStrip2'),
         cfgVisStrip1: document.getElementById('cfgVisStrip1'),
@@ -27,8 +23,6 @@ document.addEventListener('DOMContentLoaded', () => {
         styleVisitSelect: document.getElementById('styleVisit'),
         stripsLocal: document.getElementById('stripsLocal'),
         stripsVisit: document.getElementById('stripsVisit'),
-
-        // Archivos e Imágenes
         videoInput: document.getElementById('videoInput'),
         eventsInput: document.getElementById('eventsInput'),
         imgLocalInput: document.getElementById('imgLocal'),
@@ -44,29 +38,63 @@ document.addEventListener('DOMContentLoaded', () => {
         labelImgLiga: document.getElementById('labelImgLiga'),
         previewLogoLiga: document.getElementById('previewLogoLiga'),
         ligaPlaceholder: document.getElementById('ligaPlaceholder'),
-
-        // Botones y Modal
         btnRender: document.getElementById('btnRender'),
         btnOpenConfig: document.getElementById('btnOpenConfig'),
         btnCloseConfig: document.getElementById('btnCloseConfig'),
         btnApplyConfig: document.getElementById('btnApplyConfig'),
         modal: document.getElementById('configModal'),
-
-        // --- REFERENCIAS BARRA DE PROGRESO (NUEVO) ---
         progressContainer: document.getElementById('progressContainer'),
         progressBar: document.getElementById('progressBar'),
         progressText: document.getElementById('progressText'),
-        progressStatus: document.getElementById('progressStatus')
+        progressStatus: document.getElementById('progressStatus'),
+        
+        // NUEVAS REFERENCIAS
+        toastContainer: document.getElementById('toast-container'),
+        estimatedTimeLabel: document.getElementById('estimatedTimeLabel')
+    };
+
+    // VARIABLE GLOBAL PARA DURACIÓN DEL VIDEO
+    let videoDurationSeconds = 0;
+
+    // --- FUNCIONES AUXILIARES DE UI ---
+    
+    // 1. Mostrar Notificación (Toast)
+    const showToast = (message, type = 'info') => {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        // Icono según tipo
+        let icon = 'ℹ️';
+        if (type === 'error') icon = '❌';
+        if (type === 'success') icon = '✅';
+
+        toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+        
+        els.toastContainer.appendChild(toast);
+
+        // Auto eliminar del DOM después de la animación (4.5s)
+        setTimeout(() => {
+            toast.remove();
+        }, 4500);
+    };
+
+    // 2. Marcar input con error
+    const markInputError = (elementWrapperId) => {
+        const el = document.getElementById(elementWrapperId); // Usamos el ID del label contenedor
+        if(el) {
+            el.classList.add('input-error');
+            setTimeout(() => el.classList.remove('input-error'), 500);
+        }
     };
 
     // --- 2. LÓGICA DE COLORES ---
     const root = document.documentElement;
     const updateCssVar = (variable, value) => root.style.setProperty(variable, value);
+    updateCssVar('--strip-radius', '0px'); // Forzar cuadrado
 
     if(els.mainBg) els.mainBg.addEventListener('input', (e) => updateCssVar('--sb-bg-main', e.target.value));
     if(els.infoBg) els.infoBg.addEventListener('input', (e) => updateCssVar('--sb-bg-info', e.target.value));
     if(els.textColor) els.textColor.addEventListener('input', (e) => updateCssVar('--sb-text', e.target.value));
-
     if(els.cfgLocStrip1) els.cfgLocStrip1.addEventListener('input', (e) => updateCssVar('--loc-s1', e.target.value));
     if(els.cfgLocStrip2) els.cfgLocStrip2.addEventListener('input', (e) => updateCssVar('--loc-s2', e.target.value));
     if(els.cfgVisStrip1) els.cfgVisStrip1.addEventListener('input', (e) => updateCssVar('--vis-s1', e.target.value));
@@ -107,6 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if(placeholderElement) placeholderElement.classList.add('hidden');
                 }
                 reader.readAsDataURL(file);
+                showToast("Imagen cargada correctamente", "success");
             }
         });
         btnDelete.addEventListener('click', function() {
@@ -139,39 +168,82 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('videoStatusLabel').innerText = "✅ " + file.name;
                 const fileUrl = URL.createObjectURL(file);
                 els.videoPlayer.src = fileUrl;
+                
+                // Cuando el video carga los metadatos, obtenemos la duración
+                els.videoPlayer.onloadedmetadata = function() {
+                    videoDurationSeconds = els.videoPlayer.duration;
+                    console.log("Duración del video detectada:", videoDurationSeconds);
+                    showToast("Video cargado.", "success");
+                };
+                
                 els.videoPlayer.load();
             }
         });
     }
     if(els.eventsInput) {
         els.eventsInput.addEventListener('change', function(){
-            if(this.files[0]) document.getElementById('eventStatusLabel').innerText = "✅ " + this.files[0].name;
+            if(this.files[0]) {
+                document.getElementById('eventStatusLabel').innerText = "✅ " + this.files[0].name;
+                showToast("Archivo de eventos cargado", "success");
+            }
         });
     }
 
-    // --- 8. RENDERIZADO CON PROGRESO (XHR) ---
+    // --- 8. RENDERIZADO CON PROGRESO Y ESTIMACIÓN ---
     if(els.btnRender) {
-        els.btnRender.addEventListener('click', () => { // Quitamos async aquí porque usamos XHR
+        els.btnRender.addEventListener('click', () => { 
             
-            // A. VALIDACIÓN
-            if (!els.videoInput.files[0]) { alert("⚠️ Por favor, sube un archivo de VIDEO."); return; }
-            if (!els.eventsInput.files[0]) { alert("⚠️ Por favor, sube un archivo de DATOS (TXT)."); return; }
+            // A. VALIDACIÓN ESTÉTICA
+            let hasError = false;
+            
+            if (!els.videoInput.files[0]) { 
+                showToast("Falta el archivo de VIDEO", "error");
+                // Buscamos el label padre para agitarlo
+                els.videoInput.parentElement.classList.add('input-error');
+                setTimeout(()=> els.videoInput.parentElement.classList.remove('input-error'), 500);
+                hasError = true;
+            }
+            
+            if (!els.eventsInput.files[0]) { 
+                showToast("Falta el archivo de DATOS (TXT)", "error");
+                els.eventsInput.parentElement.classList.add('input-error');
+                setTimeout(()=> els.eventsInput.parentElement.classList.remove('input-error'), 500);
+                hasError = true;
+            }
 
-            // B. PREPARAR UI
+            if(hasError) return;
+
+            // B. CÁLCULO DE ESTIMACIÓN DE TIEMPO
+            let estimatedSeconds = videoDurationSeconds * 0.3;
+            
+            // Mínimo 10 segundos, Máximo mostrar minutos
+            let timeString = "";
+            if (estimatedSeconds < 60) {
+                timeString = `${Math.ceil(estimatedSeconds)} segundos`;
+            } else {
+                let mins = Math.ceil(estimatedSeconds / 60);
+                timeString = `${mins} minuto${mins > 1 ? 's' : ''}`;
+            }
+
+            // Actualizar UI
+            els.estimatedTimeLabel.innerText = `⏱️ Tiempo estimado: ~${timeString}`;
+            els.estimatedTimeLabel.classList.remove('hidden');
+
+
+            // C. PREPARAR UI
             const originalText = els.btnRender.innerText;
             els.btnRender.innerText = "⏳ Procesando...";
             els.btnRender.disabled = true;
             els.btnRender.style.cursor = "wait";
             els.btnRender.style.opacity = "0.7";
 
-            // Mostrar Barra de Progreso y Resetear
             els.progressContainer.classList.remove('hidden');
             els.progressBar.style.width = "0%";
             els.progressBar.classList.remove('processing');
             els.progressText.innerText = "0%";
-            els.progressStatus.innerText = "Preparando subida...";
+            els.progressStatus.innerText = "Subiendo...";
 
-            // C. PREPARAR DATOS
+            // D. PREPARAR DATOS
             const formData = new FormData();
             formData.append('video', els.videoInput.files[0]);
             formData.append('events', els.eventsInput.files[0]);
@@ -191,66 +263,55 @@ document.addEventListener('DOMContentLoaded', () => {
             if(els.styleVisitSelect) formData.append('style_visit', els.styleVisitSelect.value);
             if(els.chkShowLiga) formData.append('show_liga', els.chkShowLiga.checked);
 
-            // D. INICIAR PETICIÓN AJAX (XHR)
+            // E. INICIAR PETICIÓN AJAX (XHR)
             const xhr = new XMLHttpRequest();
             xhr.open('POST', '/render', true);
-            xhr.responseType = 'blob'; // Importante para recibir el video
+            xhr.responseType = 'blob'; 
 
-            // EVENTO DE PROGRESO DE SUBIDA
             xhr.upload.onprogress = function(e) {
                 if (e.lengthComputable) {
                     const percentComplete = Math.round((e.loaded / e.total) * 100);
-
                     if (percentComplete < 100) {
                         els.progressBar.style.width = percentComplete + "%";
                         els.progressText.innerText = percentComplete + "%";
-                        els.progressStatus.innerText = "Subiendo archivos...";
+                        els.progressStatus.innerText = "Subiendo...";
                     } else {
-                        els.progressStatus.innerText = "🎥 Renderizando video... (Esto puede tardar)";
-                        els.progressText.innerText = "Procesando…";
-
-                        // 🔥 Forzar repaint antes del render
+                        els.progressStatus.innerText = "🎥 Renderizando...";
+                        els.progressText.innerText = "Procesando";
                         requestAnimationFrame(() => {
                             els.progressBar.classList.add('processing');
                         });
                     }
-
                 }
             };
 
-
-            // EVENTO CUANDO TERMINA
             xhr.onload = function() {
                 if (xhr.status === 200) {
-                    // Éxito: Descargar
                     const blob = xhr.response;
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = "partido_con_marcador.mp4";
+                    a.download = "resumen_partido.mp4";
                     document.body.appendChild(a);
                     a.click();
                     a.remove();
                     window.URL.revokeObjectURL(url);
                     
-                    els.progressStatus.innerText = "✅ ¡Completado!";
+                    els.progressStatus.innerText = "✅ ¡Listo!";
+                    showToast("Renderizado completado con éxito", "success");
+                    
                     els.progressBar.classList.remove('processing');
                     els.progressBar.style.width = "100%";
-                    console.log("✅ Video descargado.");
                 } else {
-                    // Error del servidor
-                    alert("❌ Error en el servidor. Código: " + xhr.status);
-                    els.progressStatus.innerText = "Error.";
-                    els.progressBar.style.backgroundColor = "red";
+                    showToast(`Error del servidor (${xhr.status})`, "error");
+                    els.progressStatus.innerText = "Falló.";
+                    els.progressBar.style.backgroundColor = "#ff4444";
                 }
-                
-                // Restaurar Botón
                 resetButton();
             };
 
-            // EVENTO DE ERROR DE RED
             xhr.onerror = function() {
-                alert("❌ Error de red al intentar conectar.");
+                showToast("Error de conexión con el servidor", "error");
                 resetButton();
             };
 

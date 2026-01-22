@@ -2,7 +2,7 @@ import ffmpeg
 import os
 
 def render(video_path, events, config, output_path):
-    print("🚀 Iniciando Renderizado (Versión Final: Espaciado Dinámico)...")
+    print("🚀 Iniciando Renderizado (Versión Final: Pixel Perfect)...")
 
     # -------------------------------------------------------------------------
     # 1. EXTRACCIÓN DE CONFIGURACIÓN
@@ -63,34 +63,41 @@ def render(video_path, events, config, output_path):
     except:
         pass
 
-    BASE_REF = 680.0 
+    BASE_REF = 1100.0 
     S = width_final / BASE_REF 
     
+    # [IMPORTANTE] Usamos int() para evitar subpíxeles que causan huecos
     fs_main = int(13 * S)
-    H_BAR = 28 * S
-    Y_POS = 25 * S
-    X_START = 25 * S 
+    H_BAR = int(28 * S)
+    Y_POS = int(25 * S)
+    X_START = int(25 * S) 
 
-    W_LIGA_BASE = 30 * S
-    W_TIME  = 60 * S
-    W_TEAM  = 100 * S
-    W_SCORE = 60 * S
+    W_LIGA_BASE = int(30 * S)
+    W_TIME  = int(60 * S)
+    W_TEAM  = int(100 * S)
+    W_SCORE = int(60 * S)
 
     # -------------------------------------------------------------------------
-    # 3. CÁLCULO DE POSICIONES
+    # 3. CÁLCULO DE POSICIONES (PIXEL PERFECT)
     # -------------------------------------------------------------------------
+    
+    # [NUEVO] Variable de separación. Ponlo en 0. 
+    # Si sigue habiendo hueco por renderizado, ponlo en -1 para solapar.
+    GAP_LIGA_TIME = 0 
+
     if show_liga:
         x_liga = X_START
         W_LIGA = W_LIGA_BASE
-        x_time = x_liga + W_LIGA
+        # Aseguramos que x_time sea un entero exacto
+        x_time = int(x_liga + W_LIGA + GAP_LIGA_TIME)
     else:
         x_liga = 0
         W_LIGA = 0
         x_time = X_START
 
-    x_loc   = x_time + W_TIME
-    x_score = x_loc + W_TEAM
-    x_vis   = x_score + W_SCORE
+    x_loc   = int(x_time + W_TIME)
+    x_score = int(x_loc + W_TEAM)
+    x_vis   = int(x_score + W_SCORE)
 
     # -------------------------------------------------------------------------
     # 4. CONSTRUCCIÓN DE FLUJO FFMPEG
@@ -98,9 +105,12 @@ def render(video_path, events, config, output_path):
     stream = ffmpeg.input(video_path)
 
     # A. CAJAS DE FONDO
-    shadow_offset = 4 * S
-    total_w = W_LIGA + W_TIME + W_TEAM + W_SCORE + W_TEAM
+    shadow_offset = int(4 * S)
+    
+    # Calculamos el ancho total exacto basado en posiciones enteras
+    end_x = x_vis + W_TEAM
     start_shadow_x = x_liga if show_liga else x_time
+    total_w = end_x - start_shadow_x
     
     stream = stream.filter('drawbox', x=start_shadow_x + shadow_offset, y=Y_POS + shadow_offset, 
                            w=total_w, h=H_BAR, color="black@0.4", t='fill')
@@ -113,61 +123,60 @@ def render(video_path, events, config, output_path):
     stream = stream.filter('drawbox', x=x_score, y=Y_POS, w=W_SCORE, h=H_BAR, color=f"{info_bg}@1", t='fill')
     stream = stream.filter('drawbox', x=x_vis, y=Y_POS, w=W_TEAM, h=H_BAR, color=f"{main_bg}@1", t='fill')
 
-    # B. INSIGNIAS / FRANJAS
+    # B. INSIGNIAS / FRANJAS (RECTANGULARES)
     # --------------------------------------------------------
-    strip_h = 16 * S
-    strip_y = Y_POS + (H_BAR - strip_h) / 2
+    strip_h = int(16 * S)
+    strip_y = int(Y_POS + (H_BAR - strip_h) / 2)
     
-    # === [NUEVO] DEFINICIÓN DE ESPACIOS ===
-    # Aquí definimos los dos tamaños que quieres:
-    space_WITH_logo = 24 * S  # Espacio grande para cuando hay imagen
-    space_NO_logo   = 15 * S  # Espacio ajustado (el que te gusta) para cuando son solo franjas
+    space_WITH_logo = int(23 * S)
+    space_NO_logo   = int(15 * S)
 
     # -- LOCAL --
-    # Decidimos qué espacio usar dependiendo de si hay logo o no
     current_space_loc = space_WITH_logo if has_loc_logo else space_NO_logo
     
-    x_strip_loc = x_loc + current_space_loc + (5 * S)
+    x_strip_loc = int(x_loc + current_space_loc + (5 * S))
     strip_w_loc = 0
 
     if style_local == 'split':
-        temp_w = 4 * S
+        temp_w = int(4 * S)
         total_strip_w_loc = temp_w
     else:
-        temp_w = 5 * S
+        temp_w = int(5 * S)
         total_strip_w_loc = temp_w * 2 if style_local == 'stripes' else temp_w
 
     if not has_loc_logo:
         strip_w_loc = total_strip_w_loc
         if style_local == 'split':
-            stream = stream.filter('drawbox', x=x_strip_loc, y=strip_y, w=temp_w, h=strip_h/2, color=f"{loc_s1}@1", t='fill')
-            stream = stream.filter('drawbox', x=x_strip_loc, y=strip_y+(strip_h/2), w=temp_w, h=strip_h/2, color=f"{loc_s2}@1", t='fill')
+            # Split horizontal
+            half_h = int(strip_h / 2)
+            stream = stream.filter('drawbox', x=x_strip_loc, y=strip_y, w=temp_w, h=half_h, color=f"{loc_s1}@1", t='fill')
+            stream = stream.filter('drawbox', x=x_strip_loc, y=strip_y+half_h, w=temp_w, h=half_h, color=f"{loc_s2}@1", t='fill')
         else:
+            # Stripes verticales
             stream = stream.filter('drawbox', x=x_strip_loc, y=strip_y, w=temp_w, h=strip_h, color=f"{loc_s1}@1", t='fill')
             stream = stream.filter('drawbox', x=x_strip_loc+temp_w, y=strip_y, w=temp_w, h=strip_h, color=f"{loc_s2}@1", t='fill')
     else:
         strip_w_loc = 0
 
     # -- VISITANTE --
-    # Decidimos espacio visitante
     current_space_vis = space_WITH_logo if has_vis_logo else space_NO_logo
 
     if style_visit == 'split':
-        temp_w_vis = 4 * S
+        temp_w_vis = int(4 * S)
         total_strip_w_vis = temp_w_vis
     else:
-        temp_w_vis = 5 * S
+        temp_w_vis = int(5 * S)
         total_strip_w_vis = temp_w_vis * 2
 
-    # Usamos current_space_vis aquí
-    x_strip_vis = x_vis + W_TEAM - current_space_vis - (5 * S) - total_strip_w_vis
+    x_strip_vis = int(x_vis + W_TEAM - current_space_vis - (5 * S) - total_strip_w_vis)
     strip_w_vis_actual = 0 
 
     if not has_vis_logo:
         strip_w_vis_actual = total_strip_w_vis
         if style_visit == 'split':
-            stream = stream.filter('drawbox', x=x_strip_vis, y=strip_y, w=temp_w_vis, h=strip_h/2, color=f"{vis_s1}@1", t='fill')
-            stream = stream.filter('drawbox', x=x_strip_vis, y=strip_y+(strip_h/2), w=temp_w_vis, h=strip_h/2, color=f"{vis_s2}@1", t='fill')
+            half_h = int(strip_h / 2)
+            stream = stream.filter('drawbox', x=x_strip_vis, y=strip_y, w=temp_w_vis, h=half_h, color=f"{vis_s1}@1", t='fill')
+            stream = stream.filter('drawbox', x=x_strip_vis, y=strip_y+half_h, w=temp_w_vis, h=half_h, color=f"{vis_s2}@1", t='fill')
         else:
             stream = stream.filter('drawbox', x=x_strip_vis, y=strip_y, w=temp_w_vis, h=strip_h, color=f"{vis_s1}@1", t='fill')
             stream = stream.filter('drawbox', x=x_strip_vis+temp_w_vis, y=strip_y, w=temp_w_vis, h=strip_h, color=f"{vis_s2}@1", t='fill')
@@ -176,17 +185,15 @@ def render(video_path, events, config, output_path):
 
     # C. TEXTOS
     # ---------
-    txt_x_loc = x_strip_loc + strip_w_loc + (6 * S)
+    txt_x_loc = int(x_strip_loc + strip_w_loc + (6 * S))
     stream = stream.drawtext(fontfile=font_bold, text=local_name, x=txt_x_loc, 
                              y=f"{Y_POS}+({H_BAR}-th)/2", fontsize=fs_main, fontcolor=text_color)
 
-    # Para el texto visitante, recalculamos la referencia derecha usando el espacio dinámico
-    ref_right_vis = x_vis + W_TEAM - current_space_vis - (5 * S)
-    
+    ref_right_vis = int(x_vis + W_TEAM - current_space_vis - (5 * S))
     if not has_vis_logo:
-        txt_x_vis = x_strip_vis - (6 * S)
+        txt_x_vis = int(x_strip_vis - (6 * S))
     else:
-        txt_x_vis = ref_right_vis - (6 * S)
+        txt_x_vis = int(ref_right_vis - (6 * S))
 
     stream = stream.drawtext(fontfile=font_bold, text=visit_name, x=f"{txt_x_vis}-tw", 
                              y=f"{Y_POS}+({H_BAR}-th)/2", fontsize=fs_main, fontcolor=text_color)
@@ -235,27 +242,27 @@ def render(video_path, events, config, output_path):
     # -------------------------------------------------------------------------
     # 5. SUPERPOSICIÓN DE LOGOS
     # -------------------------------------------------------------------------
-    logo_target_h = 20 * S 
-    logo_y = Y_POS + (H_BAR - logo_target_h) / 2
+    logo_target_h = int(20 * S) 
+    logo_y = int(Y_POS + (H_BAR - logo_target_h) / 2)
 
     if has_loc_logo:
         logo_layer = ffmpeg.input(logo_local_path, loop=1)
-        logo_layer = logo_layer.filter('scale', -2, int(logo_target_h))
-        l_x = x_loc + (4 * S)
+        logo_layer = logo_layer.filter('scale', -2, logo_target_h)
+        l_x = int(x_loc + (4 * S))
         stream = stream.overlay(logo_layer, x=l_x, y=logo_y, shortest=1)
 
     if has_vis_logo:
         logo_layer = ffmpeg.input(logo_visit_path, loop=1)
-        logo_layer = logo_layer.filter('scale', -2, int(logo_target_h))
-        l_x = x_vis + W_TEAM - logo_target_h - (4 * S)
+        logo_layer = logo_layer.filter('scale', -2, logo_target_h)
+        l_x = int(x_vis + W_TEAM - logo_target_h - (4 * S))
         stream = stream.overlay(logo_layer, x=l_x, y=logo_y, shortest=1)
 
     if has_liga_logo:
-        liga_target_h = 21 * S
-        liga_y = Y_POS + (H_BAR - liga_target_h) / 2
+        liga_target_h = int(21 * S)
+        liga_y = int(Y_POS + (H_BAR - liga_target_h) / 2)
         logo_layer = ffmpeg.input(logo_liga_path, loop=1)
-        logo_layer = logo_layer.filter('scale', -2, int(liga_target_h))
-        l_x = x_liga + (W_LIGA - liga_target_h) / 2
+        logo_layer = logo_layer.filter('scale', -2, liga_target_h)
+        l_x = int(x_liga + (W_LIGA - liga_target_h) / 2)
         stream = stream.overlay(logo_layer, x=l_x, y=liga_y, shortest=1)
 
     # -------------------------------------------------------------------------

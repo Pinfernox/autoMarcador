@@ -1,16 +1,32 @@
+/* ==========================================================================
+   ÍNDICE DE CONTENIDOS
+   ==========================================================================
+   1. VARIABLES & CONFIGURACIÓN (:root)
+   2. BASE & SCROLLBAR (Body, Reset)
+   3. LAYOUT PRINCIPAL (Grid, Sidebar, Main)
+   4. COMPONENTES UI (Botones, Inputs, Badges)
+   5. REPRODUCTOR DE VIDEO
+   6. MARCADOR / TV OVERLAY (Cajas, Logos, Franjas)
+   7. MODAL DE CONFIGURACIÓN (Formularios, Grid)
+   8. FEEDBACK VISUAL (Barra de Progreso, Toasts, Tooltips, Validaciones)
+   9. UTILIDADES
+   ========================================================================== */
+
 /* =========================================
-   1. VARIABLES GLOBALES
+   1. VARIABLES & CONFIGURACIÓN
    ========================================= */
 :root {
+  /* Colores de Interfaz */
   --bg-dark: #121212;
   --bg-panel: #1e1e1e;
   --primary: #3a86ff;
   --primary-hover: #2667cc;
   --text-main: #ffffff;
-  --strip-radius: 0px;
   
-  /* --- COLORES DEL MARCADOR (Configurables) --- */
-  /* Al usar !important en las clases, el JS debe modificar ESTAS variables */
+  /* Configuración Marcador */
+  --strip-radius: 0px; /* 0px para esquinas cuadradas */
+  
+  /* Variables Dinámicas (Modificadas por JS) */
   --sb-bg-main: #1E90FF;  /* Fondo cajas equipos */
   --sb-bg-info: #ffffff;  /* Fondo tiempo/goles/liga */
   --sb-text: #000000;     /* Color texto */
@@ -20,62 +36,118 @@
 }
 
 /* =========================================
-   2. BASICS & SCROLLBAR
+   2. BASE & SCROLLBAR
    ========================================= */
 body {
-  margin: 0; font-family: 'Inter', sans-serif;
-  background-color: var(--bg-dark); color: var(--text-main);
-  height: 100vh; overflow: hidden;
+  margin: 0; 
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-dark); 
+  color: var(--text-main);
+  height: 100vh; 
+  overflow: hidden;
 }
 
+/* Scrollbar Personalizado */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: #1e1e1e; }
 ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #555; }
 
 /* =========================================
-   3. LAYOUT & SIDEBAR
+   3. LAYOUT PRINCIPAL
    ========================================= */
-.dashboard-container { display: grid; grid-template-columns: 315px 1fr; height: 100vh; }
-.sidebar { background-color: var(--bg-panel); padding: 20px; border-right: 1px solid #333; display: flex; flex-direction: column; gap: 20px; }
+.dashboard-container { 
+  display: grid; 
+  grid-template-columns: 315px 1fr; 
+  height: 100vh; 
+}
+
+.sidebar { 
+  background-color: var(--bg-panel); 
+  padding: 20px; 
+  border-right: 1px solid #333; 
+  display: flex; 
+  flex-direction: column; 
+  gap: 20px; 
+}
+
+.main-content { 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  background: #000; 
+  padding: 40px; 
+}
+
 .logo-area h1 { font-size: 1.2rem; margin: 0; display: inline-block; }
 .badge { background: #ff0055; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 8px; }
 
-/* Inputs Sidebar */
+/* =========================================
+   4. COMPONENTES UI (Inputs y Botones)
+   ========================================= */
+/* Inputs de Archivo ocultos */
 input[type="file"] { display: none; }
+
+/* Botones de subida personalizados */
 .custom-file-upload {
     flex-grow: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
     background-color: #2a2a2a; border: 1px solid #444; border-radius: 6px; padding: 8px 12px;
     color: #ccc; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;
 }
 .custom-file-upload:hover { background-color: #333; border-color: #666; color: white; }
-.btn-primary { background-color: var(--primary); color: white; border: none; padding: 15px; border-radius: 6px; font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: auto; }
+
+/* Botones de Acción */
+.btn-primary { 
+    background-color: var(--primary); color: white; border: none; 
+    padding: 15px; border-radius: 6px; font-weight: bold; font-size: 1rem; 
+    cursor: pointer; margin-top: auto; 
+}
 .btn-primary:hover { background: var(--primary-hover); }
-.btn-secondary { background: #444; color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; cursor: pointer; }
+
+.btn-secondary { 
+    background: #444; color: white; border: none; 
+    padding: 10px; width: 100%; border-radius: 6px; cursor: pointer; 
+}
 .btn-secondary:hover { background: #555; }
 
+/* Botón eliminar imagen (pequeño rojo) */
+.btn-delete-img { 
+    background: #442222; color: #ff5555; border: 1px solid #663333; 
+    border-radius: 6px; padding: 8px 12px; cursor: pointer; font-weight: bold; 
+    display: none; /* Oculto por defecto */
+}
+.btn-delete-img.visible { display: block; }
+
+/* Wrapper para input + botón eliminar */
+.file-input-wrapper { display: flex; gap: 5px; align-items: center; }
+
 /* =========================================
-   4. VIDEO PLAYER
+   5. REPRODUCTOR DE VIDEO
    ========================================= */
-.main-content { display: flex; align-items: center; justify-content: center; background: #000; padding: 40px; }
-.video-wrapper { width: 100%; max-width: 1000px; aspect-ratio: 16 / 9; background: #111; border-radius: 8px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; }
+.video-wrapper { 
+    width: 100%; max-width: 1000px; aspect-ratio: 16 / 9; 
+    background: #111; border-radius: 8px; overflow: hidden; 
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; 
+}
 .player-container { position: relative; width: 100%; height: 100%; }
 video { width: 100%; height: 100%; object-fit: contain; }
 
 /* =========================================
-   5. TV OVERLAY (MARCADOR) - CORREGIDO
+   6. MARCADOR / TV OVERLAY
    ========================================= */
 .tv-overlay {
     position: absolute;
     top: 30px; left: 30px;
     height: 36px;
-    width: 360px; /* Ancho con Liga */
+    width: 360px; /* Ancho estándar con Liga */
     font-family: 'Inter', sans-serif;
     pointer-events: none;
     z-index: 10;
     transition: width 0.3s ease;
+    filter: drop-shadow(4px 4px 0px rgba(0, 0, 0, 0.4));
 }
 
+/* Cajas Generales */
 .tv-box {
     position: absolute; top: 0; height: 100%;
     display: flex; align-items: center; justify-content: center;
@@ -84,234 +156,206 @@ video { width: 100%; height: 100%; object-fit: contain; }
     transition: left 0.3s ease;
 }
 
-/* --- CLASES DE COLOR Y ESTRUCTURA UNIFICADA --- */
-
-/* Cajas de Equipos */
+/* Colores de Cajas */
 .box-team { 
-    background-color: var(--sb-bg-main) !important; /* Importante para que funcione la variable */
-    display: flex;
-    align-items: center;
-    justify-content: center; /* Centrado */
-    gap: 10px; /* Espacio limpio entre elementos */
-    padding: 0 8px; 
-    box-sizing: border-box;
+    background-color: var(--sb-bg-main) !important;
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px; padding: 0 8px; box-sizing: border-box;
 }
+.box-white { background-color: var(--sb-bg-info) !important; }
 
-/* Cajas de Info (Blanco) */
-.box-white { 
-    background-color: var(--sb-bg-info) !important; 
-}
-
-/* --- POSICIONAMIENTO (Modo Normal - Con Liga) --- */
+/* Posicionamiento (Modo Con Liga) */
 .box-liga  { left: 0px;   width: 40px; z-index: 12; }
 .box-time  { left: 40px;  width: 60px; }
 .box-local { left: 100px; width: 100px; }
 .box-score { left: 200px; width: 60px; }
 .box-visit { left: 260px; width: 100px; }
 
-/* --- LOGOS E IMÁGENES --- */
+/* Logos */
 .liga-logo-img { height: 24px; width: 24px; object-fit: contain; }
-
 .team-logo { 
     height: 22px; width: 22px; object-fit: contain; 
-    margin: 0; /* Quitamos márgenes porque usamos GAP en el padre */
-    z-index: 2; 
+    margin: 0; z-index: 2; 
 }
-.hidden { display: none !important; }
 
-/* --- INSIGNIAS (FRANJAS) --- */
+/* Franjas / Insignias */
 .team-colors {
     display: flex; flex-direction: row;
     width: 8px; height: 20px;
-    border-radius: var(--strip-radius); overflow: hidden; gap: 0;
-    margin: 0; /* El GAP del padre se encarga de la separación */
+    border-radius: var(--strip-radius); 
+    overflow: hidden; gap: 0; margin: 0;
 }
 .color-strip { flex-grow: 1; height: 100%; box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
 
-/* --- ESTILO LÍNEA BICOLOR (NUEVO: MÁS FINA) --- */
+/* Estilo Split (Bicolor Horizontal) */
 .team-colors.style-split {
     flex-direction: column !important;
     width: 4px !important;
 }
 .team-colors.style-split .color-strip { width: 100% !important; height: 50% !important; border-radius: 0 !important; }
 
-/* Colores asignados */
+/* Asignación de colores CSS vars */
 .box-local .strip-1 { background-color: var(--loc-s1); }
 .box-local .strip-2 { background-color: var(--loc-s2); }
 .box-visit .strip-1 { background-color: var(--vis-s1); }
 .box-visit .strip-2 { background-color: var(--vis-s2); }
 
-/* =========================================
-   6. MODO "NO LIGA" (COMPACTO IZQUIERDA)
-   ========================================= */
-.tv-overlay.no-liga {
-    width: 320px; /* Reducimos 40px */
-}
+/* --- MODO COMPACTO (SIN LIGA) --- */
+.tv-overlay.no-liga { width: 320px; }
 .tv-overlay.no-liga .box-liga { display: none; }
-
-/* Recalculamos posiciones restando 40px */
+/* Recalculo de posiciones (-40px) */
 .tv-overlay.no-liga .box-time  { left: 0px; }
 .tv-overlay.no-liga .box-local { left: 60px; }
 .tv-overlay.no-liga .box-score { left: 160px; }
 .tv-overlay.no-liga .box-visit { left: 220px; }
 
-
 /* =========================================
-   7. MODAL CONFIGURACIÓN
+   7. MODAL DE CONFIGURACIÓN
    ========================================= */
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); }
-.modal-content { background: #1e1e1e; width: 95%; max-width: 850px; border-radius: 10px; border: 1px solid #333; display: flex; flex-direction: column; max-height: 90vh; }
-.modal-header { padding: 15px 20px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; background: #252525; border-radius: 10px 10px 0 0; }
+.modal-overlay { 
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(0, 0, 0, 0.8); display: flex; justify-content: center; 
+    align-items: center; z-index: 1000; backdrop-filter: blur(5px); 
+}
+.modal-content { 
+    background: #1e1e1e; width: 95%; max-width: 850px; 
+    border-radius: 10px; border: 1px solid #333; 
+    display: flex; flex-direction: column; max-height: 90vh; 
+}
+.modal-header { 
+    padding: 15px 20px; border-bottom: 1px solid #333; 
+    display: flex; justify-content: space-between; align-items: center; 
+    background: #252525; border-radius: 10px 10px 0 0; 
+}
 .modal-body { padding: 20px; overflow-y: auto; }
-.modal-footer { padding: 15px 20px; border-top: 1px solid #333; text-align: right; background: #252525; border-radius: 0 0 10px 10px; }
+.modal-footer { 
+    padding: 15px 20px; border-top: 1px solid #333; text-align: right; 
+    background: #252525; border-radius: 0 0 10px 10px; 
+}
 .close-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
 
-/* Grid del Modal */
+/* Estructura del Formulario */
 .config-grid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 20px; }
 .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
 .full-width { grid-column: span 2; }
-fieldset { border: 1px solid #444; border-radius: 6px; padding: 15px; margin-bottom: 0; }
+
+/* Ajustes de Espaciado (Solicitados) */
+fieldset { 
+    border: 1px solid #444; border-radius: 6px; padding: 15px; 
+    margin-bottom: 15px; /* Separación entre bloques */
+}
 legend { color: #aaa; font-size: 0.9rem; font-weight: bold; padding: 0 5px; }
 
-/* Inputs Modal */
+.input-group { margin-bottom: 10px; /* Separación entre inputs */ }
+.input-group:last-child { margin-bottom: 0; }
+
+/* Estilos de Inputs */
 .input-group label { display: block; font-size: 0.8rem; color: #ccc; margin-bottom: 5px; }
-.input-group input[type="text"] { width: 100%; background: #111; border: 1px solid #444; color: white; padding: 8px; border-radius: 4px; text-transform: uppercase; box-sizing: border-box; }
+.input-group input[type="text"] { 
+    width: 100%; background: #111; border: 1px solid #444; color: white; 
+    padding: 8px; border-radius: 4px; text-transform: uppercase; box-sizing: border-box; 
+}
 .input-group input[type="color"] { width: 100%; height: 40px; border: none; background: none; cursor: pointer; }
-.file-input-wrapper { display: flex; gap: 5px; align-items: center; }
-.btn-delete-img { background: #442222; color: #ff5555; border: 1px solid #663333; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-weight: bold; display: none; }
-.btn-delete-img.visible { display: block; }
 
-/* --- BARRA DE PROGRESO --- */
+/* =========================================
+   8. FEEDBACK VISUAL
+   ========================================= */
+
+/* --- A. Barra de Progreso --- */
 .progress-container {
-    margin-top: 15px;
-    background: #252525;
-    padding: 10px;
-    border-radius: 6px;
-    border: 1px solid #333;
+    margin-top: 15px; background: #252525; padding: 10px; 
+    border-radius: 6px; border: 1px solid #333;
 }
-
 .progress-header {
-    display: flex;
-    justify-content: space-between;
-    font-size: 0.8rem;
-    color: #ccc;
-    margin-bottom: 5px;
+    display: flex; justify-content: space-between; font-size: 0.8rem; 
+    color: #ccc; margin-bottom: 5px;
 }
-
 .progress-track {
-    width: 100%;
-    height: 8px;
-    background: #111;
-    border-radius: 4px;
-    overflow: hidden;
+    width: 100%; height: 8px; background: #111; 
+    border-radius: 4px; overflow: hidden;
 }
-
 .progress-fill {
-    height: 100%;
-    width: 0%;
-    background: var(--primary);
-    border-radius: 4px;
-    transition: width 0.2s ease;
+    height: 100%; width: 0%; background: var(--primary); 
+    border-radius: 4px; transition: width 0.2s ease;
 }
-
-/* --- BARRA DE PROGRESO --- */
-/* (Mantén el resto de estilos de la barra igual, solo cambia desde .processing hacia abajo) */
-
-/* Animación cuando está renderizando (Indeterminado) */
+/* Animación "Procesando" */
 .progress-fill.processing {
     background-color: var(--primary);
-
     background-image: linear-gradient(
-        45deg,
-        rgba(255, 255, 255, 0.25) 25%,
-        transparent 25%,
-        transparent 50%,
-        rgba(255, 255, 255, 0.25) 50%,
-        rgba(255, 255, 255, 0.25) 75%,
-        transparent 75%,
-        transparent
+        45deg, rgba(255,255,255,.25) 25%, transparent 25%, transparent 50%, 
+        rgba(255,255,255,.25) 50%, rgba(255,255,255,.25) 75%, transparent 75%, transparent
     );
-
     background-size: 25px 25px;
     animation: stripe-move 0.8s linear infinite;
 }
-
-
 @keyframes stripe-move {
     from { background-position: 0 0; }
     to   { background-position: 25px 25px; }
 }
+/* Texto de estimación de tiempo */
+.estimate-text {
+    margin-top: 8px; font-size: 0.75rem; color: #888; 
+    text-align: right; font-style: italic;
+}
 
+/* --- B. Notificaciones (Toasts) --- */
+.toast-container {
+    position: fixed; top: 20px; right: 20px; 
+    display: flex; flex-direction: column; gap: 10px; z-index: 9999;
+}
+.toast {
+    min-width: 250px; background-color: #333; color: white; 
+    padding: 12px 16px; border-radius: 6px; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    display: flex; align-items: center; gap: 10px; font-size: 0.9rem;
+    border-left: 4px solid #555;
+    animation: slideIn 0.3s ease, fadeOut 0.5s ease 4s forwards;
+}
+.toast.error { border-left-color: #ff4444; background: #2a1111; }
+.toast.success { border-left-color: #00cc66; background: #112a1a; }
+.toast.info { border-left-color: #3a86ff; background: #111a2a; }
 
-.hidden { display: none !important; }
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+@keyframes fadeOut {
+    to { opacity: 0; pointer-events: none; }
+}
 
-/* --- TOOLTIP (Signo de Interrogación) --- */
+/* --- C. Tooltips (Ayuda Visual) --- */
 .tooltip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  background-color: #444;
-  color: #ccc;
-  border-radius: 50%;
-  font-size: 10px;
-  margin-left: 6px;
-  cursor: help;
-  position: relative;
-  font-weight: bold;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; background-color: #444; color: #ccc;
+    border-radius: 50%; font-size: 10px; margin-left: 6px; 
+    cursor: help; position: relative; font-weight: bold;
 }
+.tooltip:hover { background-color: var(--primary); color: white; }
 
-.tooltip:hover {
-  background-color: var(--primary);
-  color: white;
-}
-
-/* El cuadro de texto que aparece */
 .tooltip:hover::after {
-  content: attr(data-text); /* Coge el texto del HTML */
-  position: absolute;
-  bottom: 125%; /* Aparece arriba */
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: rgba(0, 0, 0, 0.9);
-  color: white;
-  padding: 5px 10px;
-  border-radius: 4px;
-  font-size: 11px;
-  white-space: nowrap;
-  z-index: 100;
-  border: 1px solid #333;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    content: attr(data-text); position: absolute; bottom: 125%; left: 50%;
+    transform: translateX(-50%); background-color: rgba(0,0,0,0.9); color: white;
+    padding: 5px 10px; border-radius: 4px; font-size: 11px; white-space: nowrap;
+    z-index: 100; border: 1px solid #333; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+.tooltip:hover::before {
+    content: ""; position: absolute; bottom: 85%; left: 50%;
+    transform: translateX(-50%); border-width: 5px; border-style: solid;
+    border-color: rgba(0,0,0,0.9) transparent transparent transparent;
 }
 
-/* Flechita pequeña abajo del tooltip */
-.tooltip:hover::before {
-  content: "";
-  position: absolute;
-  bottom: 85%;
-  left: 50%;
-  transform: translateX(-50%);
-  border-width: 5px;
-  border-style: solid;
-  border-color: rgba(0, 0, 0, 0.9) transparent transparent transparent;
+/* --- D. Validación de Inputs (Sacudida) --- */
+.input-error {
+    border-color: #ff4444 !important;
+    animation: shake 0.4s ease-in-out;
+}
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
 }
 
 /* =========================================
-   AJUSTES DE ESPACIADO (MARGENES)
+   9. UTILIDADES
    ========================================= */
-
-/* 1. Separación entre los Fieldsets (Las cajas grandes de Local y Visitante) */
-fieldset {
-    margin-bottom: 15px; /* Aumentado para separar los bloques de equipos */
-}
-
-/* 2. Separación entre campos (Nombre y Escudo) */
-.input-group {
-    margin-bottom: 10px; /* Aumenta el espacio vertical entre inputs */
-}
-
-/* Aseguramos que el último input no empuje el borde inferior innecesariamente */
-.input-group:last-child {
-    margin-bottom: 0;
-}
+.hidden { display: none !important; }

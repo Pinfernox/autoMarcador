@@ -1,32 +1,27 @@
-# 1. Usar una versión ligera de Python
+# 1. Usar una imagen base de Python ligera (Linux)
 FROM python:3.9-slim
 
-# 2. INSTALAR FFMPEG (¡CRUCIAL!)
-RUN apt-get update && \
-    apt-get install -y ffmpeg && \
-    rm -rf /var/lib/apt/lists/*
-
-# 3. Crear carpeta de trabajo
+# 2. Establecer el directorio de trabajo dentro del contenedor
 WORKDIR /app
 
-# 4. Copiar los requerimientos e instalarlos
+# 3. INSTALAR FFMPEG (La magia de Docker)
+# Esto instala FFmpeg dentro del contenedor automáticamente
+RUN apt-get update && \
+    apt-get install -y ffmpeg && \
+    apt-get clean
+
+# 4. Copiar los archivos de requisitos e instalarlos
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 5. Copiar todo el código del backend
+# 5. Copiar el resto del código de tu proyecto
 COPY . .
 
-# 6. Copiar el frontend también (para servirlo todo junto)
-# Asumimos que la estructura es:
-# /proyecto
-#    /backend (donde está este Dockerfile)
-#    /frontend
-# NOTA: Ajusta esto si tu estructura es distinta.
-# Si tu Dockerfile está en /backend, para copiar /frontend necesitas subir el contexto.
-# SIMPLIFICACIÓN: Copiaremos la carpeta static y templates si las tienes dentro.
+# 6. Crear carpetas necesarias (para evitar errores si no existen)
+RUN mkdir -p uploads outputs
 
-# 7. Crear carpetas necesarias
-RUN mkdir -p static/assets uploads outputs
+# 7. Exponer el puerto (FastAPI usa el 8000 por defecto)
+EXPOSE 8000
 
-# 8. Comando para iniciar
+# 8. Comando para iniciar la aplicación
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
