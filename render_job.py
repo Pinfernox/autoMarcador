@@ -268,7 +268,14 @@ def render(video_path, events, config, output_path):
     # -------------------------------------------------------------------------
     # 6. RENDER FINAL
     # -------------------------------------------------------------------------
-    stream = stream.filter('scale', -2, 1080)
+    # Obtener la calidad deseada (Por defecto 1080 si no viene)
+    target_height = int(config.get("output_quality", 1080))
+    
+    print(f"🎥 Escalando salida a {target_height}p...")
+
+    # Usar esa variable en el filtro scale
+    # -2 mantiene el aspecto ratio automáticamente
+    stream = stream.filter('scale', -2, target_height)
 
     try:
         print("🎥 Ejecutando FFmpeg...")

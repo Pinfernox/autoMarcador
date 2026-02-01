@@ -33,6 +33,14 @@
         <h3>2. Personalización</h3>
         <button id="btnOpenConfig" class="btn-secondary">🖌️ Abrir Personalización</button>
       </div>
+      <div class="control-group">
+        <h3>3. Calidad de Salida</h3>
+        <select id="resolutionSelect" style="width:100%; padding:10px; background:#2a2a2a; color:white; border:1px solid #444; border-radius:6px; cursor:pointer;">
+          <option value="1080" selected>📺 FHD 1080p (Alta Calidad)</option>
+          <option value="720">⚡ HD 720p (Rápido)</option>
+          <option value="480">🚀 SD 480p (Muy Rápido)</option>
+        </select>
+      </div>
 
       <button id="btnRender" class="btn-primary">🚀 Renderizar Video</button>
 
@@ -110,7 +118,7 @@
             <input type="color" id="cfgMainBg" value="#1E90FF">
           </div>
           <div class="input-group">
-            <label>Fondo Datos (y Liga)</label>
+            <label>Fondo Datos y Liga</label>
             <input type="color" id="cfgInfoBg" value="#ffffff">
           </div>
           <div class="input-group">
