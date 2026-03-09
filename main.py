@@ -7,7 +7,7 @@ import uuid
 import asyncio
 from typing import List, Optional
 
-# IMPORTANTE: Asegúrate de que tu archivo se llama 'renderer.py'
+# IMPORTANTE: Asegúrate de que tu archivo se llama 'render_job.py'
 import render_job 
 
 app = FastAPI()
@@ -28,7 +28,7 @@ async def read_root():
     return FileResponse("static/index.html")
 
 # ---------------------------------------------------------
-# 2. PARSEO DE EVENTOS TXT
+# 2. PARSEO DE EVENTOS TXT (FORMATO MINUTO 1')
 # ---------------------------------------------------------
 def parse_events(file_content: str):
     events = []
@@ -45,7 +45,67 @@ def parse_events(file_content: str):
         if len(parts) < 2: continue
         
         time_str = parts[0]
-        desc = line[len(time_str):].strip().lower()
+        raw_desc = line[len(time_str):].strip()
+        desc_lower = raw_desc.lower()
+        
+        try:
+            mm, ss = map(int, time_str.split(':'))
+            seconds = mm * 60 + ss
+            # NUEVO: Formato corto (ej: 10')
+            short_minute = f"{mm}'" 
+        except:
+            continue
+            
+        if "gol" in desc_lower:
+            is_visitor = "(v)" in desc_lower or "visitante" in desc_lower
+            
+            if is_visitor:
+                visit_score += 1
+            else:
+                local_score += 1
+            
+            # Limpieza del nombre
+            clean_name = raw_desc
+            words_to_remove = ["Gol", "gol", "GOL", "(v)", "(V)", "visitante", "local", "de", "-", ":"]
+            
+            for w in words_to_remove:
+                clean_name = clean_name.replace(f" {w} ", " ")
+                clean_name = clean_name.replace(f"{w} ", " ")
+                clean_name = clean_name.replace(f" {w}", " ")
+                
+            clean_name = clean_name.strip()
+            if not clean_name: clean_name = "GOL"
+            
+            if len(clean_name) > 15:
+                clean_name = clean_name[:15] + "..."
+
+            events.append({
+                "time": seconds,
+                "local": local_score,
+                "visitor": visit_score,
+                "desc": desc_lower,
+                "author": clean_name,
+                "time_str": short_minute # Usamos el formato corto
+            })
+            
+    return events
+    events = []
+    lines = file_content.split('\n')
+    
+    local_score = 0
+    visit_score = 0
+    
+    for line in lines:
+        line = line.strip()
+        if not line: continue
+        
+        parts = line.split(' ')
+        if len(parts) < 2: continue
+        
+        time_str = parts[0]
+        # Obtenemos la descripción cruda (con mayúsculas/minúsculas originales para el nombre)
+        raw_desc = line[len(time_str):].strip()
+        desc_lower = raw_desc.lower()
         
         try:
             mm, ss = map(int, time_str.split(':'))
@@ -53,17 +113,40 @@ def parse_events(file_content: str):
         except:
             continue
             
-        if "gol" in desc:
-            if "(v)" in desc or "visitante" in desc:
+        if "gol" in desc_lower:
+            is_visitor = "(v)" in desc_lower or "visitante" in desc_lower
+            
+            if is_visitor:
                 visit_score += 1
             else:
                 local_score += 1
+            
+            # --- LÓGICA DE EXTRACCIÓN DE NOMBRE ---
+            clean_name = raw_desc
+            # Palabras a eliminar para dejar solo el nombre
+            words_to_remove = ["Gol", "gol", "GOL", "(v)", "(V)", "visitante", "local", "de", "-", ":"]
+            
+            for w in words_to_remove:
+                # Reemplazo simple cuidando espacios
+                clean_name = clean_name.replace(f" {w} ", " ")
+                clean_name = clean_name.replace(f"{w} ", " ")
+                clean_name = clean_name.replace(f" {w}", " ")
                 
+            clean_name = clean_name.strip()
+            # Si tras limpiar no queda nada, ponemos un valor por defecto
+            if not clean_name: clean_name = "GOL"
+            
+            # Recortamos si es muy largo
+            if len(clean_name) > 15:
+                clean_name = clean_name[:15] + "..."
+
             events.append({
                 "time": seconds,
                 "local": local_score,
                 "visitor": visit_score,
-                "desc": desc
+                "desc": desc_lower,
+                "author": clean_name,  # Guardamos el autor limpio
+                "time_str": time_str   # Guardamos el minuto texto
             })
             
     return events
@@ -108,9 +191,9 @@ async def render_video(
     # Estilos
     style_local: str = Form("stripes"),
     style_visit: str = Form("stripes"),
-    show_liga: str = Form("true"), # Recibimos como string "true"/"false" del JS
+    show_liga: str = Form("true"), 
 
-    # NUEVO PARÁMETRO DE CALIDAD
+    # Parámetro de calidad
     output_quality: int = Form(1080)
 ):
     job_id = str(uuid.uuid4())
@@ -182,7 +265,7 @@ async def render_video(
         print(f"🎬 Iniciando Job {job_id} a {output_quality}p...")
         loop = asyncio.get_event_loop()
         
-        # Llamamos a la función render del archivo renderer.py
+        # Llamamos a render_job.render
         await loop.run_in_executor(None, render_job.render, temp_video_path, match_events, config, output_path)
         
         # --- F. Limpieza y Respuesta ---

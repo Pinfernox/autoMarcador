@@ -2,7 +2,7 @@ import ffmpeg
 import os
 
 def render(video_path, events, config, output_path):
-    print("🚀 Iniciando Renderizado (Versión Final: Pixel Perfect)...")
+    print("🚀 Iniciando Renderizado (Versión Final: 0x Hex + Sin Replace)...")
 
     # -------------------------------------------------------------------------
     # 1. EXTRACCIÓN DE CONFIGURACIÓN
@@ -11,29 +11,40 @@ def render(video_path, events, config, output_path):
     info_bg = config.get("info_bg", "#FFFFFF")
     text_color = config.get("text_color", "#000000")
     
-    # Local
     local_name = config.get("local_name", "LOCAL")
     loc_s1 = config.get("loc_s1", "#FFFFFF")
     loc_s2 = config.get("loc_s2", "#000000")
     style_local = config.get("style_local", "stripes")
     logo_local_path = config.get("logo_local", None)
 
-    # Visitante
     visit_name = config.get("visit_name", "VISIT")
     vis_s1 = config.get("vis_s1", "#FFFFFF")
     vis_s2 = config.get("vis_s2", "#000000")
     style_visit = config.get("style_visit", "stripes")
     logo_visit_path = config.get("logo_visit", None)
 
-    # Liga / TV
     logo_liga_path = config.get("logo_liga", None)
     show_liga_str = str(config.get("show_liga", "true")).lower()
     show_liga = show_liga_str == 'true'
 
-    # Validación de Logos
     has_liga_logo = show_liga and logo_liga_path and os.path.exists(logo_liga_path)
     has_loc_logo  = logo_local_path and os.path.exists(logo_local_path)
     has_vis_logo  = logo_visit_path and os.path.exists(logo_visit_path)
+
+    # -------------------------------------------------------------------------
+    # HELPER: COLOR FFMPEG SEGURO (CRÍTICO)
+    # Transforma "#FFFFFF" en "0xFFFFFF@1"
+    # Esto evita el problema de la transparencia y el problema del símbolo #
+    # -------------------------------------------------------------------------
+    def get_ffmpeg_color(hex_code):
+        if not hex_code: return "0xFFFFFF@1"
+        # Quitamos el # si existe
+        clean = hex_code.lstrip('#')
+        # Devolvemos formato 0xRRGGBB@1 (Hexadecimal con Opacidad 1)
+        return f"0x{clean}@1"
+
+    # Convertimos el color de fondo a formato seguro
+    banner_bg_color = get_ffmpeg_color(info_bg) 
 
     # -------------------------------------------------------------------------
     # 2. FUENTES Y GEOMETRÍA
@@ -46,14 +57,12 @@ def render(video_path, events, config, output_path):
             font_bold = f
             break
 
-    # Detección de ancho
     width_final = 1280 
     try:
         probe = ffmpeg.probe(video_path)
         video_stream = next((stream for stream in probe['streams'] if stream['codec_type'] == 'video'), None)
         width_raw = int(video_stream['width'])
         height_raw = int(video_stream['height'])
-        
         tags = video_stream.get('tags', {})
         rotate = tags.get('rotate', '0')
         if str(rotate) in ['90', '-90', '270', '-270']:
@@ -66,7 +75,6 @@ def render(video_path, events, config, output_path):
     BASE_REF = 1100.0 
     S = width_final / BASE_REF 
     
-    # [IMPORTANTE] Usamos int() para evitar subpíxeles que causan huecos
     fs_main = int(13 * S)
     H_BAR = int(28 * S)
     Y_POS = int(25 * S)
@@ -78,17 +86,13 @@ def render(video_path, events, config, output_path):
     W_SCORE = int(60 * S)
 
     # -------------------------------------------------------------------------
-    # 3. CÁLCULO DE POSICIONES (PIXEL PERFECT)
+    # 3. CÁLCULO DE POSICIONES
     # -------------------------------------------------------------------------
-    
-    # [NUEVO] Variable de separación. Ponlo en 0. 
-    # Si sigue habiendo hueco por renderizado, ponlo en -1 para solapar.
     GAP_LIGA_TIME = 0 
 
     if show_liga:
         x_liga = X_START
         W_LIGA = W_LIGA_BASE
-        # Aseguramos que x_time sea un entero exacto
         x_time = int(x_liga + W_LIGA + GAP_LIGA_TIME)
     else:
         x_liga = 0
@@ -102,12 +106,14 @@ def render(video_path, events, config, output_path):
     # -------------------------------------------------------------------------
     # 4. CONSTRUCCIÓN DE FLUJO FFMPEG
     # -------------------------------------------------------------------------
-    stream = ffmpeg.input(video_path)
+    input_file = ffmpeg.input(video_path)
+    audio_stream = input_file.audio
+    stream = input_file['v']
 
-    # A. CAJAS DE FONDO
+    # =========================================================================
+    # CAPA 1: SOMBRA DEL MARCADOR
+    # =========================================================================
     shadow_offset = int(4 * S)
-    
-    # Calculamos el ancho total exacto basado en posiciones enteras
     end_x = x_vis + W_TEAM
     start_shadow_x = x_liga if show_liga else x_time
     total_w = end_x - start_shadow_x
@@ -115,44 +121,112 @@ def render(video_path, events, config, output_path):
     stream = stream.filter('drawbox', x=start_shadow_x + shadow_offset, y=Y_POS + shadow_offset, 
                            w=total_w, h=H_BAR, color="black@0.4", t='fill')
 
+    # =========================================================================
+    # CAPA 2: BANNER DE GOLEADOR (AHORA SÍ FUNCIONARÁ)
+    # =========================================================================
+    sorted_events = sorted(events, key=lambda x: x['time'])
+    
+    BANNER_DURATION = 5     
+    ANIM_DURATION = 0.8
+    
+    # [CONFIGURACIÓN DE ANCHO]
+    W_BANNER = int(140 * S) 
+    
+    X_VISIBLE = x_vis + W_TEAM          # Derecha (Visible)
+    X_HIDDEN = X_VISIBLE - W_BANNER     # Izquierda (Escondido tras marcador)
+
+    for ev in sorted_events:
+        author = ev.get('author', '')
+        minute_txt = ev.get('time_str', '')
+        t_event = ev['time']
+        
+        if author and author != "GOL":
+            t_start = t_event
+            t_anim_in_end = t_start + ANIM_DURATION
+            t_anim_out_start = t_start + BANNER_DURATION - ANIM_DURATION
+            t_end = t_start + BANNER_DURATION
+            
+            # Fórmulas de animación
+            expr_in = f"{X_HIDDEN} + ({X_VISIBLE}-{X_HIDDEN}) * (t-{t_start})/{ANIM_DURATION}"
+            expr_out = f"{X_VISIBLE} - ({X_VISIBLE}-{X_HIDDEN}) * (t-{t_anim_out_start})/{ANIM_DURATION}"
+            
+            slide_expr = f"if(lt(t, {t_anim_in_end}), {expr_in}, if(lt(t, {t_anim_out_start}), {X_VISIBLE}, {expr_out}))"
+
+            # 1. Caja del Banner
+            # [SOLUCIÓN APLICADA]:
+            # - Usamos banner_bg_color en formato '0xFFFFFF@1' (sin #)
+            # - NO usamos replace=1 (para que pinte encima sin borrar)
+            # - Usamos t='fill'
+            stream = stream.filter(
+                'drawbox',
+                x=slide_expr,
+                y=Y_POS,
+                w=W_BANNER,
+                h=H_BAR,
+                color=banner_bg_color, # <--- 0x...
+                t='fill',
+                enable=f"between(t,{t_start},{t_end})"
+            )
+            
+            # 2. Nombre del Jugador
+            stream = stream.drawtext(
+                fontfile=font_bold,
+                text=author.upper(),
+                x=f"{slide_expr} + (10*{S})",
+                y=f"{Y_POS}+({H_BAR}-th)/2 - (4*{S})",
+                fontsize=int(fs_main * 0.95),
+                fontcolor=text_color,
+                enable=f"between(t,{t_start},{t_end})"
+            )
+            
+            # 3. Minuto
+            stream = stream.drawtext(
+                fontfile=font_bold,
+                text=minute_txt,
+                x=f"{slide_expr} + (10*{S})",
+                y=f"{Y_POS}+({H_BAR}-th)/2 + (6*{S})",
+                fontsize=int(fs_main * 0.7),
+                fontcolor="#666666",
+                enable=f"between(t,{t_start},{t_end})"
+            )
+
+    # =========================================================================
+    # CAPA 3: MARCADOR PRINCIPAL (TAPA AL BANNER)
+    # =========================================================================
+
     if show_liga:
         stream = stream.filter('drawbox', x=x_liga, y=Y_POS, w=W_LIGA, h=H_BAR, color=f"{info_bg}@1", t='fill')
 
     stream = stream.filter('drawbox', x=x_time, y=Y_POS, w=W_TIME, h=H_BAR, color=f"{info_bg}@1", t='fill')
     stream = stream.filter('drawbox', x=x_loc, y=Y_POS, w=W_TEAM, h=H_BAR, color=f"{main_bg}@1", t='fill')
     stream = stream.filter('drawbox', x=x_score, y=Y_POS, w=W_SCORE, h=H_BAR, color=f"{info_bg}@1", t='fill')
+    
+    # Esta caja (Visitante) es la que hace la "magia" de ocultar el banner
     stream = stream.filter('drawbox', x=x_vis, y=Y_POS, w=W_TEAM, h=H_BAR, color=f"{main_bg}@1", t='fill')
 
-    # B. INSIGNIAS / FRANJAS (RECTANGULARES)
-    # --------------------------------------------------------
+    # D. INSIGNIAS / FRANJAS
     strip_h = int(16 * S)
     strip_y = int(Y_POS + (H_BAR - strip_h) / 2)
-    
     space_WITH_logo = int(23 * S)
     space_NO_logo   = int(15 * S)
 
     # -- LOCAL --
     current_space_loc = space_WITH_logo if has_loc_logo else space_NO_logo
-    
     x_strip_loc = int(x_loc + current_space_loc + (5 * S))
     strip_w_loc = 0
-
     if style_local == 'split':
         temp_w = int(4 * S)
         total_strip_w_loc = temp_w
     else:
         temp_w = int(5 * S)
         total_strip_w_loc = temp_w * 2 if style_local == 'stripes' else temp_w
-
     if not has_loc_logo:
         strip_w_loc = total_strip_w_loc
         if style_local == 'split':
-            # Split horizontal
             half_h = int(strip_h / 2)
             stream = stream.filter('drawbox', x=x_strip_loc, y=strip_y, w=temp_w, h=half_h, color=f"{loc_s1}@1", t='fill')
             stream = stream.filter('drawbox', x=x_strip_loc, y=strip_y+half_h, w=temp_w, h=half_h, color=f"{loc_s2}@1", t='fill')
         else:
-            # Stripes verticales
             stream = stream.filter('drawbox', x=x_strip_loc, y=strip_y, w=temp_w, h=strip_h, color=f"{loc_s1}@1", t='fill')
             stream = stream.filter('drawbox', x=x_strip_loc+temp_w, y=strip_y, w=temp_w, h=strip_h, color=f"{loc_s2}@1", t='fill')
     else:
@@ -160,17 +234,14 @@ def render(video_path, events, config, output_path):
 
     # -- VISITANTE --
     current_space_vis = space_WITH_logo if has_vis_logo else space_NO_logo
-
     if style_visit == 'split':
         temp_w_vis = int(4 * S)
         total_strip_w_vis = temp_w_vis
     else:
         temp_w_vis = int(5 * S)
         total_strip_w_vis = temp_w_vis * 2
-
     x_strip_vis = int(x_vis + W_TEAM - current_space_vis - (5 * S) - total_strip_w_vis)
     strip_w_vis_actual = 0 
-
     if not has_vis_logo:
         strip_w_vis_actual = total_strip_w_vis
         if style_visit == 'split':
@@ -183,46 +254,30 @@ def render(video_path, events, config, output_path):
     else:
         strip_w_vis_actual = 0
 
-    # C. TEXTOS
-    # ---------
+    # E. TEXTOS Y RELOJ
     txt_x_loc = int(x_strip_loc + strip_w_loc + (6 * S))
     stream = stream.drawtext(fontfile=font_bold, text=local_name, x=txt_x_loc, 
                              y=f"{Y_POS}+({H_BAR}-th)/2", fontsize=fs_main, fontcolor=text_color)
-
     ref_right_vis = int(x_vis + W_TEAM - current_space_vis - (5 * S))
     if not has_vis_logo:
         txt_x_vis = int(x_strip_vis - (6 * S))
     else:
         txt_x_vis = int(ref_right_vis - (6 * S))
-
     stream = stream.drawtext(fontfile=font_bold, text=visit_name, x=f"{txt_x_vis}-tw", 
                              y=f"{Y_POS}+({H_BAR}-th)/2", fontsize=fs_main, fontcolor=text_color)
 
-    # Cronómetro
     time_str = "%{pts:gmtime:0:%M\\:%S}"
-    stream = stream.drawtext(
-        fontfile=font_bold, 
-        text=time_str, 
-        x=f"{x_time}+({W_TIME}-tw)/2", 
-        y=f"{Y_POS}+({H_BAR}-th)/2", 
-        fontsize=fs_main, 
-        fontcolor=text_color,
-        escape_text=False
-    )
+    stream = stream.drawtext(fontfile=font_bold, text=time_str, x=f"{x_time}+({W_TIME}-tw)/2", 
+                             y=f"{Y_POS}+({H_BAR}-th)/2", fontsize=fs_main, fontcolor=text_color, escape_text=False)
 
     if show_liga and not has_liga_logo:
-        stream = stream.drawtext(
-            fontfile=font_bold, text="TV", 
-            x=f"{x_liga}+({W_LIGA}-tw)/2", y=f"{Y_POS}+({H_BAR}-th)/2", 
-            fontsize=fs_main, fontcolor="#999999"
-        )
+        stream = stream.drawtext(fontfile=font_bold, text="TV", x=f"{x_liga}+({W_LIGA}-tw)/2", 
+                                 y=f"{Y_POS}+({H_BAR}-th)/2", fontsize=fs_main, fontcolor="#999999")
 
-    # D. MARCADOR DINÁMICO
-    sorted_events = sorted(events, key=lambda x: x['time'])
+    # F. MARCADOR (GOLES)
     current_loc = 0
     current_vis = 0
     last_time = 0
-    
     if not sorted_events:
         stream = stream.drawtext(fontfile=font_bold, text="0 - 0", x=f"{x_score}+({W_SCORE}-tw)/2", y=f"{Y_POS}+({H_BAR}-th)/2", fontsize=fs_main, fontcolor=text_color)
     else:
@@ -239,9 +294,7 @@ def render(video_path, events, config, output_path):
         stream = stream.drawtext(fontfile=font_bold, text=final_score, enable=f"gte(t,{last_time})", 
                                  x=f"{x_score}+({W_SCORE}-tw)/2", y=f"{Y_POS}+({H_BAR}-th)/2", fontsize=fs_main, fontcolor=text_color)
 
-    # -------------------------------------------------------------------------
-    # 5. SUPERPOSICIÓN DE LOGOS
-    # -------------------------------------------------------------------------
+    # G. LOGOS SUPERPUESTOS
     logo_target_h = int(20 * S) 
     logo_y = int(Y_POS + (H_BAR - logo_target_h) / 2)
 
@@ -268,18 +321,15 @@ def render(video_path, events, config, output_path):
     # -------------------------------------------------------------------------
     # 6. RENDER FINAL
     # -------------------------------------------------------------------------
-    # Obtener la calidad deseada (Por defecto 1080 si no viene)
     target_height = int(config.get("output_quality", 1080))
-    
-    print(f"🎥 Escalando salida a {target_height}p...")
-
-    # Usar esa variable en el filtro scale
-    # -2 mantiene el aspecto ratio automáticamente
+    print(f"🎥 Escalando salida a {target_height}p con Alta Calidad...")
     stream = stream.filter('scale', -2, target_height)
 
     try:
         print("🎥 Ejecutando FFmpeg...")
-        stream.output(output_path, vcodec='libx264', preset='ultrafast', crf=28, acodec='copy').run(capture_stdout=True, capture_stderr=True, overwrite_output=True)
+        out = ffmpeg.output(stream, audio_stream, output_path, 
+                            vcodec='libx264', preset='veryfast', crf=23, acodec='aac', audio_bitrate='192k') 
+        out.run(capture_stdout=True, capture_stderr=True, overwrite_output=True)
         
     except ffmpeg.Error as e:
         error_log = e.stderr.decode('utf8')
