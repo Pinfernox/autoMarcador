@@ -2,7 +2,7 @@ import ffmpeg
 import os
 
 def render(video_path, events, config, output_path):
-    print("🚀 Iniciando Renderizado (Versión Final: 0x Hex + Sin Replace)...")
+    print("🚀 Iniciando Renderizado (Versión Final: Controles de Diseño y Animación)...")
 
     # -------------------------------------------------------------------------
     # 1. EXTRACCIÓN DE CONFIGURACIÓN
@@ -32,19 +32,17 @@ def render(video_path, events, config, output_path):
     has_vis_logo  = logo_visit_path and os.path.exists(logo_visit_path)
 
     # -------------------------------------------------------------------------
-    # HELPER: COLOR FFMPEG SEGURO (CRÍTICO)
-    # Transforma "#FFFFFF" en "0xFFFFFF@1"
-    # Esto evita el problema de la transparencia y el problema del símbolo #
+    # HELPER: COLOR PARA OVERLAY
     # -------------------------------------------------------------------------
-    def get_ffmpeg_color(hex_code):
-        if not hex_code: return "0xFFFFFF@1"
-        # Quitamos el # si existe
-        clean = hex_code.lstrip('#')
-        # Devolvemos formato 0xRRGGBB@1 (Hexadecimal con Opacidad 1)
-        return f"0x{clean}@1"
+    def get_lavfi_color(hex_code):
+        if not hex_code: return "white"
+        if hex_code.lower() == "#ffffff" or hex_code.lower() == "white":
+            return "white"
+        if not hex_code.startswith("#"):
+            return f"#{hex_code}"
+        return hex_code
 
-    # Convertimos el color de fondo a formato seguro
-    banner_bg_color = get_ffmpeg_color(info_bg) 
+    banner_bg_color = get_lavfi_color(info_bg) 
 
     # -------------------------------------------------------------------------
     # 2. FUENTES Y GEOMETRÍA
@@ -111,7 +109,7 @@ def render(video_path, events, config, output_path):
     stream = input_file['v']
 
     # =========================================================================
-    # CAPA 1: SOMBRA DEL MARCADOR
+    # CAPA 1: SOMBRA DEL MARCADOR (FONDO)
     # =========================================================================
     shadow_offset = int(4 * S)
     end_x = x_vis + W_TEAM
@@ -122,58 +120,64 @@ def render(video_path, events, config, output_path):
                            w=total_w, h=H_BAR, color="black@0.4", t='fill')
 
     # =========================================================================
-    # CAPA 2: BANNER DE GOLEADOR (AHORA SÍ FUNCIONARÁ)
+    # CAPA 2: BANNER DE GOLEADOR (CONTROLES DE DISEÑO)
     # =========================================================================
     sorted_events = sorted(events, key=lambda x: x['time'])
     
-    BANNER_DURATION = 5     
-    ANIM_DURATION = 0.8
+    # ---------------------------------------------------------
+    # 🎛️ AJUSTES FINOS DEL BANNER (Modifica estos valores)
+    # ---------------------------------------------------------
+    BANNER_DURATION = 5.0     
     
-    # [CONFIGURACIÓN DE ANCHO]
-    W_BANNER = int(140 * S) 
+    # ⏱️ VELOCIDAD DE ANIMACIÓN (Menor = Más rápido)
+    ANIM_DURATION = 0.6
     
-    X_VISIBLE = x_vis + W_TEAM          # Derecha (Visible)
-    X_HIDDEN = X_VISIBLE - W_BANNER     # Izquierda (Escondido tras marcador)
+    # 📏 LONGITUD DEL BANNER (Aumenta el 140 para alargarlo)
+    W_BANNER = int(100 * S) 
+    
+    # 📐 EL PÍXEL REBELDE (Alineación vertical perfecta)
+    # Si asoma por arriba, cambia Y_POS + 0 a Y_POS + 1
+    Y_BANNER = int(Y_POS + 0)
+    # Si es muy gordo, cambia H_BAR - 0 a H_BAR - 1
+    H_BANNER = int(H_BAR - 0)
+    # ---------------------------------------------------------
+
+    # Coordenadas horizontales
+    X_VISIBLE = x_vis + W_TEAM          # Posición Final (derecha)
+    X_HIDDEN = X_VISIBLE - W_BANNER     # Posición Inicial (escondido)
 
     for ev in sorted_events:
         author = ev.get('author', '')
         minute_txt = ev.get('time_str', '')
-        t_event = ev['time']
+        t_event = float(ev['time'])
         
         if author and author != "GOL":
             t_start = t_event
-            t_anim_in_end = t_start + ANIM_DURATION
-            t_anim_out_start = t_start + BANNER_DURATION - ANIM_DURATION
             t_end = t_start + BANNER_DURATION
+            t_anim_in_end = t_start + ANIM_DURATION
+            t_anim_out_start = t_end - ANIM_DURATION
             
-            # Fórmulas de animación
+            # Fórmulas IDA Y VUELTA
             expr_in = f"{X_HIDDEN} + ({X_VISIBLE}-{X_HIDDEN}) * (t-{t_start})/{ANIM_DURATION}"
             expr_out = f"{X_VISIBLE} - ({X_VISIBLE}-{X_HIDDEN}) * (t-{t_anim_out_start})/{ANIM_DURATION}"
-            
             slide_expr = f"if(lt(t, {t_anim_in_end}), {expr_in}, if(lt(t, {t_anim_out_start}), {X_VISIBLE}, {expr_out}))"
 
-            # 1. Caja del Banner
-            # [SOLUCIÓN APLICADA]:
-            # - Usamos banner_bg_color en formato '0xFFFFFF@1' (sin #)
-            # - NO usamos replace=1 (para que pinte encima sin borrar)
-            # - Usamos t='fill'
-            stream = stream.filter(
-                'drawbox',
+            # 1. Caja del Banner (Usando los valores ajustados Y_BANNER y H_BANNER)
+            banner_src = ffmpeg.input(f"color=c={banner_bg_color}:s={W_BANNER}x{H_BANNER}", f='lavfi')
+            stream = stream.overlay(
+                banner_src,
                 x=slide_expr,
-                y=Y_POS,
-                w=W_BANNER,
-                h=H_BAR,
-                color=banner_bg_color, # <--- 0x...
-                t='fill',
-                enable=f"between(t,{t_start},{t_end})"
+                y=Y_BANNER, # <--- Alineación Y corregida
+                enable=f"between(t,{t_start},{t_end})",
+                shortest=1
             )
             
             # 2. Nombre del Jugador
             stream = stream.drawtext(
                 fontfile=font_bold,
                 text=author.upper(),
-                x=f"{slide_expr} + (10*{S})",
-                y=f"{Y_POS}+({H_BAR}-th)/2 - (4*{S})",
+                x=f"{slide_expr} + (10*{S})", 
+                y=f"{Y_BANNER}+({H_BANNER}-th)/2 - (4*{S})", # Centrado respecto a la nueva altura
                 fontsize=int(fs_main * 0.95),
                 fontcolor=text_color,
                 enable=f"between(t,{t_start},{t_end})"
@@ -183,15 +187,15 @@ def render(video_path, events, config, output_path):
             stream = stream.drawtext(
                 fontfile=font_bold,
                 text=minute_txt,
-                x=f"{slide_expr} + (10*{S})",
-                y=f"{Y_POS}+({H_BAR}-th)/2 + (6*{S})",
+                x=f"{slide_expr} + (10*{S})", 
+                y=f"{Y_BANNER}+({H_BANNER}-th)/2 + (6*{S})",
                 fontsize=int(fs_main * 0.7),
                 fontcolor="#666666",
                 enable=f"between(t,{t_start},{t_end})"
             )
 
     # =========================================================================
-    # CAPA 3: MARCADOR PRINCIPAL (TAPA AL BANNER)
+    # CAPA 3: MARCADOR PRINCIPAL (Z-INDEX SUPERIOR)
     # =========================================================================
 
     if show_liga:
@@ -200,8 +204,6 @@ def render(video_path, events, config, output_path):
     stream = stream.filter('drawbox', x=x_time, y=Y_POS, w=W_TIME, h=H_BAR, color=f"{info_bg}@1", t='fill')
     stream = stream.filter('drawbox', x=x_loc, y=Y_POS, w=W_TEAM, h=H_BAR, color=f"{main_bg}@1", t='fill')
     stream = stream.filter('drawbox', x=x_score, y=Y_POS, w=W_SCORE, h=H_BAR, color=f"{info_bg}@1", t='fill')
-    
-    # Esta caja (Visitante) es la que hace la "magia" de ocultar el banner
     stream = stream.filter('drawbox', x=x_vis, y=Y_POS, w=W_TEAM, h=H_BAR, color=f"{main_bg}@1", t='fill')
 
     # D. INSIGNIAS / FRANJAS
@@ -322,13 +324,17 @@ def render(video_path, events, config, output_path):
     # 6. RENDER FINAL
     # -------------------------------------------------------------------------
     target_height = int(config.get("output_quality", 1080))
-    print(f"🎥 Escalando salida a {target_height}p con Alta Calidad...")
+    print(f"🎥 Escalando salida a {target_height}p con Alta Calidad y Audio AAC...")
     stream = stream.filter('scale', -2, target_height)
 
     try:
         print("🎥 Ejecutando FFmpeg...")
         out = ffmpeg.output(stream, audio_stream, output_path, 
-                            vcodec='libx264', preset='veryfast', crf=23, acodec='aac', audio_bitrate='192k') 
+                            vcodec='libx264', 
+                            preset='veryfast', 
+                            crf=23, 
+                            acodec='aac',          
+                            audio_bitrate='192k') 
         out.run(capture_stdout=True, capture_stderr=True, overwrite_output=True)
         
     except ffmpeg.Error as e:
