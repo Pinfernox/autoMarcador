@@ -137,7 +137,7 @@ def render(video_path, events, config, output_path):
     
     # 📐 EL PÍXEL REBELDE (Alineación vertical perfecta)
     # Si asoma por arriba, cambia Y_POS + 0 a Y_POS + 1
-    Y_BANNER = int(Y_POS + 0)
+    Y_BANNER = int(Y_POS + 0.5)
     # Si es muy gordo, cambia H_BAR - 0 a H_BAR - 1
     H_BANNER = int(H_BAR - 0)
     # ---------------------------------------------------------
