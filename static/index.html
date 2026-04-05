@@ -23,10 +23,15 @@
           <input type="file" id="videoInput" accept="video/*">
           <span id="videoStatusLabel">📂 Subir Video MP4</span>
         </label>
-        <label class="custom-file-upload">
-          <input type="file" id="eventsInput" accept=".txt">
-          <span id="eventStatusLabel">📄 Subir Datos TXT</span>
-        </label>
+<div style="display: flex; gap: 10px; align-items: center;">
+            <label class="custom-file-upload" style="flex-grow: 1; margin: 0;">
+                <input type="file" id="eventsInput" accept=".txt">
+                <span id="eventStatusLabel">📄 Subir Datos TXT</span>
+            </label>
+            <span style="font-size: 20px; cursor: help;" title="El archivo .txt debe tener este formato exacto por línea:
+              MM:SS Gol (V) Nombre Jugador
+              MM:SS Gol (L) Nombre Jugador">?</span>
+        </div>
       </div>
 
       <div class="control-group">
@@ -147,9 +152,26 @@
                     <button type="button" id="btnDelLiga" class="btn-delete-img" title="Eliminar Logo">X</button>
                 </div>
             </div>
-            <p class="limit-note" style="margin-top:10px;">Aparece en su propia caja a la izquierda.</p>
         </fieldset>
       </div>
+
+      <fieldset>
+        <legend>⏱️ Opciones de Partido (Segundas Partes)</legend>
+        <div class="config-grid" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:15px;">
+            <div class="input-group">
+                <label>Empezar en Minuto</label>
+                <input type="number" id="cfgStartMinute" value="0" min="0" style="width:100%; padding:8px;">
+            </div>
+            <div class="input-group">
+                <label>Goles Iniciales (Local)</label>
+                <input type="number" id="cfgStartLocal" value="0" min="0" style="width:100%; padding:8px;">
+            </div>
+            <div class="input-group">
+                <label>Goles Iniciales (Visit.)</label>
+                <input type="number" id="cfgStartVisit" value="0" min="0" style="width:100%; padding:8px;">
+            </div>
+        </div>
+      </fieldset>
 
       <fieldset>
         <legend>Equipo Local</legend>

@@ -1,4 +1,4 @@
-console.log("✅ preview.js cargado (Versión Final Corregida)");
+console.log("✅ preview.js cargado (Versión Final: Preview Sincronizada en Vivo)");
 
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -9,11 +9,20 @@ document.addEventListener('DOMContentLoaded', () => {
         videoPlayer: document.getElementById('video'),
         chkShowLiga: document.getElementById('chkShowLiga'),
 
-        // Textos e Inputs
+        // Textos e Inputs (Añadimos los de inicio)
         localName: document.getElementById('local'),
         visitName: document.getElementById('visitor'),
         localNameInput: document.getElementById('inputLocalName'),
         visitNameInput: document.getElementById('inputVisitName'),
+        
+        // Elementos de la Preview
+        previewScore: document.getElementById('score'),
+        previewTime: document.getElementById('time'),
+        
+        // Inputs de Inicio (Minutos y Goles)
+        cfgStartMinute: document.getElementById('cfgStartMinute'),
+        cfgStartLocal: document.getElementById('cfgStartLocal'),
+        cfgStartVisit: document.getElementById('cfgStartVisit'),
         
         // Colores
         mainBg: document.getElementById('cfgMainBg'),
@@ -135,6 +144,42 @@ document.addEventListener('DOMContentLoaded', () => {
     if(els.localNameInput) els.localNameInput.addEventListener('input', (e) => els.localName.innerText = e.target.value || "LOCAL");
     if(els.visitNameInput) els.visitNameInput.addEventListener('input', (e) => els.visitName.innerText = e.target.value || "VISIT");
     
+
+    // =========================================================
+    // --- NUEVO: LÓGICA DE MINUTO Y MARCADOR INICIAL ---
+    // =========================================================
+    const updateInitialScore = () => {
+        const loc = els.cfgStartLocal ? els.cfgStartLocal.value : 0;
+        const vis = els.cfgStartVisit ? els.cfgStartVisit.value : 0;
+        if (els.previewScore) els.previewScore.innerText = `${loc || 0} - ${vis || 0}`;
+    };
+
+    const updateLiveTime = () => {
+        const startMin = els.cfgStartMinute ? parseInt(els.cfgStartMinute.value || 0, 10) : 0;
+        // Si hay un video, sumamos sus segundos de reproducción
+        const currentSeconds = els.videoPlayer && !els.videoPlayer.paused ? els.videoPlayer.currentTime : 0;
+        
+        const totalSeconds = (startMin * 60) + currentSeconds;
+        const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+        const s = Math.floor(totalSeconds % 60).toString().padStart(2, '0');
+        
+        if (els.previewTime) els.previewTime.innerText = `${m}:${s}`;
+    };
+
+    // Escuchadores de las cajas del HTML
+    if (els.cfgStartLocal) els.cfgStartLocal.addEventListener('input', updateInitialScore);
+    if (els.cfgStartVisit) els.cfgStartVisit.addEventListener('input', updateInitialScore);
+    if (els.cfgStartMinute) els.cfgStartMinute.addEventListener('input', updateLiveTime);
+
+    // Escuchador del reloj del video en vivo
+    if (els.videoPlayer) {
+        els.videoPlayer.addEventListener('timeupdate', updateLiveTime);
+        els.videoPlayer.addEventListener('loadeddata', updateLiveTime);
+        els.videoPlayer.addEventListener('seeked', updateLiveTime);
+    }
+    // =========================================================
+
+
     // --- 3. TOGGLE LIGA Y ESTILOS ESCUDO ---
     const updateBadgeStyle = (select, container) => {
         if (!select || !container) return;
@@ -183,10 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupImageControl(els.imgVisitInput, els.btnDelVisit, els.labelImgVisit, els.previewLogoVisit, els.stripsVisit, "🛡️ Subir", null);
     setupImageControl(els.imgLigaInput, els.btnDelLiga, els.labelImgLiga, els.previewLogoLiga, null, "🖼️ Imagen", els.ligaPlaceholder);
 
-
-    // =========================================================
-    // --- 5. LÓGICA DEL MODAL (ESTO ERA LO QUE FALTABA) ---
-    // =========================================================
+    // --- 5. LÓGICA DEL MODAL ---
     const openModal = () => els.modal.classList.remove('hidden');
     const closeModal = () => els.modal.classList.add('hidden');
 
@@ -196,8 +238,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (els.modal) els.modal.addEventListener('click', (e) => {
         if (e.target === els.modal) closeModal();
     });
-    // =========================================================
-
 
     // --- 6. CAMBIO DE RESOLUCIÓN ---
     if(els.resolutionSelect) {
@@ -282,6 +322,12 @@ document.addEventListener('DOMContentLoaded', () => {
             formData.append('loc_s2', els.cfgLocStrip2.value);
             formData.append('vis_s1', els.cfgVisStrip1.value);
             formData.append('vis_s2', els.cfgVisStrip2.value);
+            
+            // NUEVOS DATOS AÑADIDOS
+            formData.append("start_minute", els.cfgStartMinute ? els.cfgStartMinute.value : "0");
+            formData.append("start_score_local", els.cfgStartLocal ? els.cfgStartLocal.value : "0");
+            formData.append("start_score_visit", els.cfgStartVisit ? els.cfgStartVisit.value : "0");
+
             if(els.styleLocalSelect) formData.append('style_local', els.styleLocalSelect.value);
             if(els.styleVisitSelect) formData.append('style_visit', els.styleVisitSelect.value);
             if(els.chkShowLiga) formData.append('show_liga', els.chkShowLiga.checked);

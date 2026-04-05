@@ -2,7 +2,7 @@ import ffmpeg
 import os
 
 def render(video_path, events, config, output_path):
-    print("🚀 Iniciando Renderizado (Versión Final: Controles de Diseño y Animación)...")
+    print("🚀 Iniciando Renderizado (Versión Final: Minuto y Marcador Personalizado)...")
 
     # -------------------------------------------------------------------------
     # 1. EXTRACCIÓN DE CONFIGURACIÓN
@@ -30,6 +30,11 @@ def render(video_path, events, config, output_path):
     has_liga_logo = show_liga and logo_liga_path and os.path.exists(logo_liga_path)
     has_loc_logo  = logo_local_path and os.path.exists(logo_local_path)
     has_vis_logo  = logo_visit_path and os.path.exists(logo_visit_path)
+
+    # --- NUEVOS DATOS DE INICIO ---
+    start_minute = int(config.get("start_minute", 0))
+    start_score_local = int(config.get("start_score_local", 0))
+    start_score_visit = int(config.get("start_score_visit", 0))
 
     # -------------------------------------------------------------------------
     # HELPER: COLOR PARA OVERLAY
@@ -120,31 +125,23 @@ def render(video_path, events, config, output_path):
                            w=total_w, h=H_BAR, color="black@0.4", t='fill')
 
     # =========================================================================
-    # CAPA 2: BANNER DE GOLEADOR (CONTROLES DE DISEÑO)
+    # CAPA 2: BANNER DE GOLEADOR
     # =========================================================================
     sorted_events = sorted(events, key=lambda x: x['time'])
     
     # ---------------------------------------------------------
-    # 🎛️ AJUSTES FINOS DEL BANNER (Modifica estos valores)
+    # 🎛️ AJUSTES FINOS DEL BANNER
     # ---------------------------------------------------------
     BANNER_DURATION = 5.0     
-    
-    # ⏱️ VELOCIDAD DE ANIMACIÓN (Menor = Más rápido)
     ANIM_DURATION = 0.6
-    
-    # 📏 LONGITUD DEL BANNER (Aumenta el 140 para alargarlo)
     W_BANNER = int(100 * S) 
     
-    # 📐 EL PÍXEL REBELDE (Alineación vertical perfecta)
-    # Si asoma por arriba, cambia Y_POS + 0 a Y_POS + 1
-    Y_BANNER = int(Y_POS + 0.5)
-    # Si es muy gordo, cambia H_BAR - 0 a H_BAR - 1
-    H_BANNER = int(H_BAR - 0)
+    Y_BANNER = int(Y_POS + 1)
+    H_BANNER = int(H_BAR - 1)
     # ---------------------------------------------------------
 
-    # Coordenadas horizontales
-    X_VISIBLE = x_vis + W_TEAM          # Posición Final (derecha)
-    X_HIDDEN = X_VISIBLE - W_BANNER     # Posición Inicial (escondido)
+    X_VISIBLE = x_vis + W_TEAM          
+    X_HIDDEN = X_VISIBLE - W_BANNER     
 
     for ev in sorted_events:
         author = ev.get('author', '')
@@ -157,33 +154,29 @@ def render(video_path, events, config, output_path):
             t_anim_in_end = t_start + ANIM_DURATION
             t_anim_out_start = t_end - ANIM_DURATION
             
-            # Fórmulas IDA Y VUELTA
             expr_in = f"{X_HIDDEN} + ({X_VISIBLE}-{X_HIDDEN}) * (t-{t_start})/{ANIM_DURATION}"
             expr_out = f"{X_VISIBLE} - ({X_VISIBLE}-{X_HIDDEN}) * (t-{t_anim_out_start})/{ANIM_DURATION}"
             slide_expr = f"if(lt(t, {t_anim_in_end}), {expr_in}, if(lt(t, {t_anim_out_start}), {X_VISIBLE}, {expr_out}))"
 
-            # 1. Caja del Banner (Usando los valores ajustados Y_BANNER y H_BANNER)
             banner_src = ffmpeg.input(f"color=c={banner_bg_color}:s={W_BANNER}x{H_BANNER}", f='lavfi')
             stream = stream.overlay(
                 banner_src,
                 x=slide_expr,
-                y=Y_BANNER, # <--- Alineación Y corregida
+                y=Y_BANNER, 
                 enable=f"between(t,{t_start},{t_end})",
                 shortest=1
             )
             
-            # 2. Nombre del Jugador
             stream = stream.drawtext(
                 fontfile=font_bold,
-                text=author.upper(),
+                text=author.title(),
                 x=f"{slide_expr} + (10*{S})", 
-                y=f"{Y_BANNER}+({H_BANNER}-th)/2 - (4*{S})", # Centrado respecto a la nueva altura
+                y=f"{Y_BANNER}+({H_BANNER}-th)/2 - (4*{S})",
                 fontsize=int(fs_main * 0.95),
                 fontcolor=text_color,
                 enable=f"between(t,{t_start},{t_end})"
             )
             
-            # 3. Minuto
             stream = stream.drawtext(
                 fontfile=font_bold,
                 text=minute_txt,
@@ -195,7 +188,7 @@ def render(video_path, events, config, output_path):
             )
 
     # =========================================================================
-    # CAPA 3: MARCADOR PRINCIPAL (Z-INDEX SUPERIOR)
+    # CAPA 3: MARCADOR PRINCIPAL
     # =========================================================================
 
     if show_liga:
@@ -268,7 +261,9 @@ def render(video_path, events, config, output_path):
     stream = stream.drawtext(fontfile=font_bold, text=visit_name, x=f"{txt_x_vis}-tw", 
                              y=f"{Y_POS}+({H_BAR}-th)/2", fontsize=fs_main, fontcolor=text_color)
 
-    time_str = "%{pts:gmtime:0:%M\\:%S}"
+    # RECURSO CLAVE: SUMAR LOS SEGUNDOS DEL MINUTO INICIAL AL RELOJ
+    offset_seconds = start_minute * 60
+    time_str = f"%{{pts:gmtime:{offset_seconds}:%M\\:%S}}"
     stream = stream.drawtext(fontfile=font_bold, text=time_str, x=f"{x_time}+({W_TIME}-tw)/2", 
                              y=f"{Y_POS}+({H_BAR}-th)/2", fontsize=fs_main, fontcolor=text_color, escape_text=False)
 
@@ -276,12 +271,14 @@ def render(video_path, events, config, output_path):
         stream = stream.drawtext(fontfile=font_bold, text="TV", x=f"{x_liga}+({W_LIGA}-tw)/2", 
                                  y=f"{Y_POS}+({H_BAR}-th)/2", fontsize=fs_main, fontcolor="#999999")
 
-    # F. MARCADOR (GOLES)
-    current_loc = 0
-    current_vis = 0
+    # F. MARCADOR (GOLES CON VARIABLES INICIALES)
+    current_loc = start_score_local
+    current_vis = start_score_visit
     last_time = 0
+    
     if not sorted_events:
-        stream = stream.drawtext(fontfile=font_bold, text="0 - 0", x=f"{x_score}+({W_SCORE}-tw)/2", y=f"{Y_POS}+({H_BAR}-th)/2", fontsize=fs_main, fontcolor=text_color)
+        initial_score_txt = f"{current_loc} - {current_vis}"
+        stream = stream.drawtext(fontfile=font_bold, text=initial_score_txt, x=f"{x_score}+({W_SCORE}-tw)/2", y=f"{Y_POS}+({H_BAR}-th)/2", fontsize=fs_main, fontcolor=text_color)
     else:
         for ev in sorted_events:
             t_event = ev['time']
@@ -321,7 +318,7 @@ def render(video_path, events, config, output_path):
         stream = stream.overlay(logo_layer, x=l_x, y=liga_y, shortest=1)
 
     # -------------------------------------------------------------------------
-    # 6. RENDER FINAL
+    # 6. RENDER FINAL 
     # -------------------------------------------------------------------------
     target_height = int(config.get("output_quality", 1080))
     print(f"🎥 Escalando salida a {target_height}p con Alta Calidad y Audio AAC...")
